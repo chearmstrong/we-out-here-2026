@@ -11,6 +11,8 @@ Baseline: `071dc7c`
 - Split active Current Programme Day from upcoming Next Programme Day so a plan gap no longer labels a future day as current.
 - Added RFC 5545 content-line folding at 75 UTF-8 octets, including the continuation-space budget, with long title and multibyte Event Note coverage.
 
+Follow-up documentation review removed a stale promise that a cached snapshot remains active until explicit acceptance across app closure, and corrected the implementation-plan example so Current Programme Day represents only an active saved event while Next Programme Day represents the upcoming event.
+
 ## TDD evidence
 
 Each behavior was introduced with a focused failing test before its implementation:

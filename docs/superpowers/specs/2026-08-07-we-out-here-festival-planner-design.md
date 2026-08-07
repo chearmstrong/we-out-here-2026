@@ -24,7 +24,7 @@ The first release includes:
 - Overlap indicators for saved events; the app flags a conflict but does not choose for the user.
 - Offline use after one successful online load/installation.
 - Calendar export of the saved itinerary as an `.ics` file, including any Event Note but no automatic alarm.
-- A visible last-checked date for the local Schedule Snapshot and an explicit connected-user update prompt; cached snapshots remain usable offline until the user updates.
+- A visible last-checked date for the local Schedule Snapshot and a connected-user update prompt. An open planner keeps using its cached version without a forced reload; the browser may activate a waiting update after every controlled planner client closes.
 
 Out of scope for the first release:
 
