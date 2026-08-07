@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
@@ -127,7 +127,25 @@ describe("EventDetailsDialog", () => {
     expect(close).toHaveBeenCalledTimes(2);
   });
 
-  it("moves focus into the dialog and returns it when the dialog closes", () => {
+  it("closes when the modal backdrop is clicked", async () => {
+    const user = userEvent.setup();
+    const close = vi.fn();
+
+    render(
+      <EventDetailsDialog
+        event={event}
+        isFavourite={false}
+        isClashing={false}
+        onClose={close}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("dialog", { name: "Kotoa details" }));
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("moves focus into the dialog and returns it when the dialog closes", async () => {
     const trigger = document.createElement("button");
     trigger.textContent = "Open details";
     document.body.append(trigger);
@@ -148,7 +166,7 @@ describe("EventDetailsDialog", () => {
     ).toHaveFocus();
 
     unmount();
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
     trigger.remove();
   });
 

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { FestivalEvent } from "../domain/festival";
 import {
   CategoryIcon,
@@ -16,7 +17,45 @@ export type EventDetailsDialogProps = {
   onClose: () => void;
   onToggleFavourite: (eventId: string) => void;
   onSaveNote?: (eventId: string, note: string) => void;
+  returnFocusTo?: HTMLElement | null;
 };
+
+type IsolatedElementState = {
+  element: HTMLElement;
+  inert: boolean;
+  ariaHidden: string | null;
+};
+
+function isolateDialogFromPlanner(dialog: HTMLDialogElement) {
+  const isolatedElements: IsolatedElementState[] = Array.from(
+    document.body.children,
+  )
+    .filter(
+      (element): element is HTMLElement =>
+        element instanceof HTMLElement && element !== dialog,
+    )
+    .map((element) => ({
+      element,
+      inert: element.inert,
+      ariaHidden: element.getAttribute("aria-hidden"),
+    }));
+
+  isolatedElements.forEach(({ element }) => {
+    element.inert = true;
+    element.setAttribute("aria-hidden", "true");
+  });
+
+  return () => {
+    isolatedElements.forEach(({ element, inert, ariaHidden }) => {
+      element.inert = inert;
+      if (ariaHidden === null) {
+        element.removeAttribute("aria-hidden");
+      } else {
+        element.setAttribute("aria-hidden", ariaHidden);
+      }
+    });
+  };
+}
 
 export function EventDetailsDialog({
   event,
@@ -26,63 +65,95 @@ export function EventDetailsDialog({
   onClose,
   onToggleFavourite,
   onSaveNote,
+  returnFocusTo,
 }: EventDetailsDialogProps) {
   const titleId = useId();
   const noteHelpId = useId();
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusFrameRef = useRef<number | null>(null);
+  const [returnFocusTarget] = useState<HTMLElement | null>(() => {
+    if (returnFocusTo) {
+      return returnFocusTo;
+    }
+    return document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  });
   const [draftNote, setDraftNote] = useState(note.slice(0, MAX_NOTE_LENGTH));
 
   useEffect(() => {
-    const previouslyFocused = document.activeElement;
+    const dialog = dialogRef.current;
+    if (!dialog) {
+      return;
+    }
+
+    if (restoreFocusFrameRef.current !== null) {
+      window.cancelAnimationFrame(restoreFocusFrameRef.current);
+      restoreFocusFrameRef.current = null;
+    }
+
+    const restorePlanner = isolateDialogFromPlanner(dialog);
+    if (!dialog.open && typeof dialog.showModal === "function") {
+      dialog.showModal();
+    } else if (!dialog.open) {
+      dialog.setAttribute("open", "");
+    }
     closeButtonRef.current?.focus();
 
     return () => {
-      if (
-        previouslyFocused instanceof HTMLElement &&
-        previouslyFocused.isConnected
-      ) {
-        previouslyFocused.focus();
-        window.requestAnimationFrame(() => {
-          if (
-            previouslyFocused.isConnected &&
-            document.activeElement !== previouslyFocused
-          ) {
-            previouslyFocused.focus();
-          }
-        });
+      if (dialog.open && typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
       }
+      restorePlanner();
+      restoreFocusFrameRef.current = window.requestAnimationFrame(() => {
+        restoreFocusFrameRef.current = null;
+        if (returnFocusTarget?.isConnected) {
+          returnFocusTarget.focus();
+        }
+      });
     };
-  }, []);
+  }, [returnFocusTarget]);
 
   useEffect(() => {
     setDraftNote(note.slice(0, MAX_NOTE_LENGTH));
   }, [event.id, note]);
 
-  useEffect(() => {
-    const closeOnEscape = (keyboardEvent: KeyboardEvent) => {
-      if (keyboardEvent.key === "Escape") {
-        onClose();
-      }
-    };
+  const requestClose = () => onClose();
 
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
-  return (
-    <div className="dialog-backdrop">
+  return createPortal(
+    <dialog
+      aria-labelledby={titleId}
+      aria-modal="true"
+      className="dialog-backdrop"
+      ref={dialogRef}
+      onCancel={(cancelEvent) => {
+        cancelEvent.preventDefault();
+        requestClose();
+      }}
+      onClick={(clickEvent) => {
+        if (clickEvent.target === clickEvent.currentTarget) {
+          requestClose();
+        }
+      }}
+      onKeyDown={(keyboardEvent) => {
+        if (keyboardEvent.key === "Escape") {
+          keyboardEvent.preventDefault();
+          requestClose();
+        }
+      }}
+    >
       <section
-        aria-labelledby={titleId}
-        aria-modal="true"
         className="event-dialog"
-        role="dialog"
       >
         <button
           aria-label={`Close ${event.title} details`}
           className="dialog-close"
           ref={closeButtonRef}
           type="button"
-          onClick={onClose}
+          onClick={requestClose}
         >
           <span aria-hidden="true">×</span>
         </button>
@@ -146,6 +217,7 @@ export function EventDetailsDialog({
           <p className="event-note-prompt">Save this event to add a local note.</p>
         )}
       </section>
-    </div>
+    </dialog>,
+    document.body,
   );
 }

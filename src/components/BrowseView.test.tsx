@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { StrictMode } from "react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
@@ -89,5 +90,86 @@ describe("BrowseView", () => {
     expect(screen.getByRole("dialog", { name: "Kotoa details" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Save Kotoa" }));
     expect(toggle).toHaveBeenCalledWith(events[0].id);
+  });
+
+  it("isolates the complete planner composition while details are open", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <>
+        <nav aria-label="Planner views">
+          <button type="button">My plan</button>
+        </nav>
+        <BrowseView
+          events={[events[0]]}
+          favouriteIds={new Set()}
+          onToggleFavourite={() => undefined}
+        />
+        <aside aria-label="Offline status">
+          <button type="button">Update now</button>
+        </aside>
+      </>,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "View Kotoa details" }),
+    );
+
+    expect(screen.getByRole("dialog", { name: "Kotoa details" })).toBeVisible();
+    expect(
+      screen.queryByRole("navigation", { name: "Planner views" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("complementary", { name: "Offline status" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Close Kotoa details" }),
+    );
+
+    expect(
+      screen.getByRole("navigation", { name: "Planner views" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("complementary", { name: "Offline status" }),
+    ).toBeVisible();
+  });
+
+  it("restores the original card opener when StrictMode replays effects", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StrictMode>
+        <BrowseView
+          events={[events[0]]}
+          favouriteIds={new Set()}
+          onToggleFavourite={() => undefined}
+        />
+      </StrictMode>,
+    );
+
+    const opener = screen.getByRole("button", {
+      name: "View Kotoa details",
+    });
+    const nativeFocus = opener.focus.bind(opener);
+    opener.focus = () => {
+      if (!opener.closest("[inert]")) {
+        nativeFocus();
+      }
+    };
+
+    await user.click(opener);
+    expect(
+      screen.getByRole("button", { name: "Close Kotoa details" }),
+    ).toHaveFocus();
+    await new Promise<void>((resolve) =>
+      window.requestAnimationFrame(() => resolve()),
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Close Kotoa details" }),
+    );
+
+    await waitFor(() => expect(opener).toHaveFocus());
   });
 });

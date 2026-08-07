@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { FestivalEvent, ProgrammeDay } from "../domain/festival";
 import {
   filterEvents,
@@ -38,7 +38,7 @@ type EventCardListProps = {
   favouriteIds: ReadonlySet<string>;
   clashingIds: ReadonlySet<string>;
   onToggleFavourite: (eventId: string) => void;
-  onViewDetails: (eventId: string) => void;
+  onViewDetails: (eventId: string, opener: HTMLButtonElement) => void;
 };
 
 function EventCardList({
@@ -57,7 +57,7 @@ function EventCardList({
           isFavourite={favouriteIds.has(event.id)}
           isClashing={clashingIds.has(event.id)}
           onToggleFavourite={onToggleFavourite}
-          onViewDetails={() => onViewDetails(event.id)}
+          onViewDetails={(opener) => onViewDetails(event.id, opener)}
         />
       ))}
     </div>
@@ -125,6 +125,7 @@ export function BrowseView({
   const [filters, setFilters] = useState<BrowseFilters>(INITIAL_FILTERS);
   const [mode, setMode] = useState<BrowseMode>("list");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
 
   const venues = useMemo(
     () =>
@@ -148,21 +149,22 @@ export function BrowseView({
     ? events.find((event) => event.id === selectedEventId)
     : undefined;
 
+  const openDetails = (eventId: string, opener: HTMLButtonElement) => {
+    detailsOpenerRef.current = opener;
+    setSelectedEventId(eventId);
+  };
+
   const cardListProps: EventCardListProps = {
     events: visibleEvents,
     favouriteIds,
     clashingIds,
     onToggleFavourite,
-    onViewDetails: setSelectedEventId,
+    onViewDetails: openDetails,
   };
 
   return (
     <section className="browse-view" aria-labelledby="browse-heading">
-      <div
-        aria-hidden={selectedEvent ? true : undefined}
-        className="browse-view__content"
-        inert={selectedEvent ? true : undefined}
-      >
+      <div className="browse-view__content">
         <header className="browse-view__header">
           <div>
             <p className="section-kicker">Make your weekend</p>
@@ -210,6 +212,7 @@ export function BrowseView({
           onClose={() => setSelectedEventId(null)}
           onToggleFavourite={onToggleFavourite}
           onSaveNote={onSaveNote}
+          returnFocusTo={detailsOpenerRef.current}
         />
       ) : null}
     </section>

@@ -116,7 +116,7 @@ export type EventCardProps = {
   isFavourite: boolean;
   isClashing: boolean;
   onToggleFavourite: (eventId: string) => void;
-  onViewDetails?: () => void;
+  onViewDetails?: (opener: HTMLButtonElement) => void;
 };
 
 export function EventCard({
@@ -152,7 +152,9 @@ export function EventCard({
             className="text-button"
             type="button"
             aria-label={`View ${event.title} details`}
-            onClick={onViewDetails}
+            onClick={(clickEvent) =>
+              onViewDetails(clickEvent.currentTarget)
+            }
           >
             View details
           </button>

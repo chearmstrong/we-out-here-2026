@@ -368,10 +368,24 @@ main {
   position: fixed;
   z-index: 10;
   inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: var(--ink);
+  background: transparent;
+  overflow-y: auto;
+}
+
+.dialog-backdrop[open] {
   display: grid;
   place-items: center;
   padding: 1rem;
-  overflow-y: auto;
+}
+
+.dialog-backdrop::backdrop {
   background: rgb(10 30 24 / 78%);
 }
 
