@@ -82,6 +82,14 @@ Cards show title, time, venue, event-category icon plus text label, and saved st
 
 If two saved events overlap, both display an accessible clash indicator. The planner does not rank events or automatically resolve the clash.
 
+## Visual identity
+
+The planner takes broad atmospheric cues from the festival: a warm, energetic night-time palette, high-contrast editorial hierarchy, playful content blocks, and human, concise copy. Its visual expression remains original: it uses a distinct app name and wordmark, licensed or system fonts, a custom icon system, and original layouts.
+
+It must not use or recreate the We Out Here logo, wordmark, illustrations, photography, or distinctive display type. If published publicly, it states clearly that it is an unofficial personal planner and is not affiliated with or endorsed by the festival.
+
+The base palette uses dark green, coral, sun yellow, and warm off-white. Category icons and text labels continue to carry meaning independently of colour, and all text and controls meet accessible contrast requirements.
+
 ## Offline and failure behaviour
 
 - On a device that has loaded the site while online, the complete app and its schedule remain available offline.
