@@ -20,9 +20,17 @@ describe("createCalendar", () => {
 
     expect(ics).toContain("BEGIN:VCALENDAR\r\n");
     expect(ics).toContain("UID:thursday:main-stage:kotoa@field-notes.local");
+    expect(ics).toContain("DTSTAMP:20260820T122000Z");
     expect(ics).toContain("DTSTART:20260820T132000");
     expect(ics).toContain("LOCATION:Main Stage");
     expect(ics).toContain("END:VCALENDAR\r\n");
+  });
+
+  it("derives a stable UTC DTSTAMP from each event timestamp", () => {
+    const savedEvent = event({ id: "one", title: "Kotoa" });
+
+    expect(createCalendar([savedEvent])).toContain("DTSTAMP:20260820T122000Z");
+    expect(createCalendar([savedEvent])).toBe(createCalendar([savedEvent]));
   });
 
   it("escapes event fields and adds Event Notes as the description", () => {

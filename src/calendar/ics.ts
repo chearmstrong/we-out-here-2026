@@ -4,6 +4,12 @@ import { compareByStartThenTitle } from "../planner/itinerary";
 export const toIcsLocal = (iso: string): string =>
   iso.replace(/[-:]/g, "").replace(/[+-]\d{4}$/, "").slice(0, 15);
 
+export const toIcsUtc = (iso: string): string =>
+  new Date(iso)
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+
 export const escapeIcs = (value: string): string =>
   value
     .replace(/\\/g, "\\\\")
@@ -26,6 +32,7 @@ export function createCalendar(
     lines.push(
       "BEGIN:VEVENT",
       `UID:${event.id}@field-notes.local`,
+      `DTSTAMP:${toIcsUtc(event.startsAt)}`,
       `DTSTART:${toIcsLocal(event.startsAt)}`,
       `DTEND:${toIcsLocal(event.endsAt)}`,
       `SUMMARY:${escapeIcs(event.title)}`,
