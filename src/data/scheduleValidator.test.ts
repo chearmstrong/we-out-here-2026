@@ -130,4 +130,73 @@ describe("validateSchedule", () => {
       ),
     ).toBe(false);
   });
+
+  it("preserves official title spelling and punctuation", () => {
+    const titlesById = new Map(schedule.map(({ id, title }) => [id, title]));
+    const expectedTitles = new Map([
+      ["friday:tomorrows-warriors-big-top:roge", "ROGÊ"],
+      [
+        "friday:love-dancin:mr-scruff-dj-spinna-and-vanessa-freeman",
+        "Mr Scruff, DJ Spinna & Vanessa Freeman",
+      ],
+      ["friday:love-dancin:lena-c", "LÉNA C"],
+      ["friday:beat-hotel-x-ilegal-mezcal:babyschon", "BABYSCHÖN"],
+      [
+        "saturday:beat-hotel-x-ilegal-mezcal:cami-laye-okun",
+        "CAMI LAYÉ OKÚN",
+      ],
+      [
+        "saturday:near-mint-record-store:cami-laye-okun",
+        "CAMI LAYÉ OKÚN",
+      ],
+      ["sunday:main-stage:ana-frango-eletrico", "ANA FRANGO ELÉTRICO"],
+      [
+        "sunday:tomorrows-warriors-big-top:christ-stephane-boizi",
+        "CHRIST-STÉPHANE BOIZI",
+      ],
+      ["sunday:carhartt-wip:baile-ijo", "BAILE IJÓ"],
+    ]);
+
+    for (const [id, expectedTitle] of expectedTitles) {
+      expect(titlesById.get(id), id).toBe(expectedTitle);
+    }
+  });
+
+  it("uses stable lower-kebab IDs without start times", () => {
+    const stableId =
+      /^(thursday|friday|saturday|sunday):[a-z0-9]+(?:-[a-z0-9]+)*:[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+    for (const event of schedule) {
+      const startTimeToken = event.startsAt.slice(11, 16).replace(":", "-");
+
+      expect(event.id, event.title).toMatch(stableId);
+      expect(event.id.split(":")[0], event.title).toBe(event.programmeDay);
+      expect(event.id, event.title).not.toContain(startTimeToken);
+    }
+  });
+
+  it("stores every Calendar Timestamp with the August BST offset", () => {
+    for (const event of schedule) {
+      expect(event.startsAt, event.title).toMatch(/\+01:00$/);
+      expect(event.endsAt, event.title).toMatch(/\+01:00$/);
+    }
+  });
+
+  it("keeps Calendar Timestamps within the Programme Day or following date", () => {
+    const validCalendarDates = {
+      thursday: ["2026-08-20", "2026-08-21"],
+      friday: ["2026-08-21", "2026-08-22"],
+      saturday: ["2026-08-22", "2026-08-23"],
+      sunday: ["2026-08-23", "2026-08-24"],
+    } as const;
+
+    for (const event of schedule) {
+      expect(validCalendarDates[event.programmeDay], event.title).toContain(
+        event.startsAt.slice(0, 10),
+      );
+      expect(validCalendarDates[event.programmeDay], event.title).toContain(
+        event.endsAt.slice(0, 10),
+      );
+    }
+  });
 });
