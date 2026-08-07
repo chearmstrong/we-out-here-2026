@@ -1,8 +1,10 @@
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
+import { PAGES_BASE } from "./src/config/site";
 
 export default defineConfig({
+  base: PAGES_BASE,
   plugins: [
     react(),
     VitePWA({
