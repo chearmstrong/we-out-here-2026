@@ -1,24 +1,40 @@
-/// <reference types="vite-plugin-pwa/react" />
+/// <reference types="vite/client" />
 
-import { useCallback, useState } from "react";
-import { useRegisterSW } from "virtual:pwa-register/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createOfflineWorkerRegistration } from "./offlineWorkerRegistration";
 import type { OfflineStatusState } from "./OfflineStatus";
+
+type OfflineWorkerLifecycle = ReturnType<typeof createOfflineWorkerRegistration>;
 
 export function useOfflineStatus() {
   const [state, setState] = useState<OfflineStatusState>("offline-unavailable");
-  const { updateServiceWorker } = useRegisterSW({
-    onOfflineReady: () => setState("ready"),
-    onNeedRefresh: () => setState("updating"),
-    onRegisteredSW: (_swUrl, registration) => {
-      if (registration?.active) setState("ready");
-    },
-    onRegisterError: () => setState("offline-unavailable"),
-  });
+  const lifecycleRef = useRef<OfflineWorkerLifecycle | null>(null);
 
-  const refresh = useCallback(
-    () => updateServiceWorker(true),
-    [updateServiceWorker],
-  );
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const scope = import.meta.env.BASE_URL;
+    const lifecycle = createOfflineWorkerRegistration({
+      serviceWorkers: navigator.serviceWorker,
+      workerUrl: `${scope}sw.js`,
+      scope,
+      onStateChange: (nextState) => {
+        setState((current) =>
+          current === "updating" && nextState === "ready" ? current : nextState,
+        );
+      },
+    });
+
+    lifecycleRef.current = lifecycle;
+    void lifecycle.start();
+
+    return () => {
+      lifecycle.stop();
+      if (lifecycleRef.current === lifecycle) lifecycleRef.current = null;
+    };
+  }, []);
+
+  const refresh = useCallback(() => lifecycleRef.current?.acceptUpdate(), []);
 
   return { state, refresh };
 }
