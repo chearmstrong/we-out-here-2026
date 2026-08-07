@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { downloadCalendar } from "./calendar/ics";
 import { BrowseView } from "./components/BrowseView";
 import { PlanView } from "./components/PlanView";
@@ -7,19 +7,90 @@ import { scheduleChanges } from "./data/scheduleChanges";
 import { createItineraryStore } from "./storage/itineraryStore";
 
 type PlannerView = "plan" | "browse";
+const PLANNER_CLOCK_INTERVAL_MS = 60_000;
+
+class SessionMemoryStorage implements Storage {
+  private readonly values = new Map<string, string>();
+
+  get length() {
+    return this.values.size;
+  }
+
+  clear() {
+    this.values.clear();
+  }
+
+  getItem(key: string) {
+    return this.values.get(key) ?? null;
+  }
+
+  key(index: number) {
+    return [...this.values.keys()][index] ?? null;
+  }
+
+  removeItem(key: string) {
+    this.values.delete(key);
+  }
+
+  setItem(key: string, value: string) {
+    this.values.set(key, value);
+  }
+}
+
+function getBrowserStorage(): { storage: Storage; persistent: boolean } {
+  try {
+    return { storage: window.localStorage, persistent: true };
+  } catch {
+    return { storage: new SessionMemoryStorage(), persistent: false };
+  }
+}
+
+function usePlannerClock(): Date {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const refresh = () => setNow(new Date());
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+    const intervalId = window.setInterval(
+      refresh,
+      PLANNER_CLOCK_INTERVAL_MS,
+    );
+
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, []);
+
+  return now;
+}
 
 export default function App() {
-  const [{ store, initialItinerary }] = useState(() => {
+  const [{ store, initialItinerary, storageIsPersistent }] = useState(() => {
     const validEventIds = new Set(schedule.map((event) => event.id));
+    const browserStorage = getBrowserStorage();
     const itineraryStore = createItineraryStore(
-      window.localStorage,
+      browserStorage.storage,
       validEventIds,
       scheduleChanges,
     );
+    const loadedItinerary = itineraryStore.load();
 
     return {
       store: itineraryStore,
-      initialItinerary: itineraryStore.load(),
+      initialItinerary: {
+        ...loadedItinerary,
+        persisted: browserStorage.persistent && loadedItinerary.persisted,
+      },
+      storageIsPersistent: browserStorage.persistent,
     };
   });
   const [view, setView] = useState<PlannerView>("plan");
@@ -31,6 +102,7 @@ export default function App() {
   );
   const [persisted, setPersisted] = useState(initialItinerary.persisted);
   const [removedIds, setRemovedIds] = useState(initialItinerary.removedIds);
+  const now = usePlannerClock();
   const savedEvents = schedule.filter((event) => favouriteIds.has(event.id));
 
   const saveItinerary = (
@@ -41,7 +113,7 @@ export default function App() {
       favouriteIds: [...nextFavouriteIds],
       notesByEventId: nextNotesByEventId,
     });
-    setPersisted(result.persisted);
+    setPersisted(storageIsPersistent && result.persisted);
     setFavouriteIds(new Set(nextFavouriteIds));
     setNotesByEventId(nextNotesByEventId);
   };
@@ -81,7 +153,7 @@ export default function App() {
     setFavouriteIds(new Set());
     setNotesByEventId({});
     setRemovedIds([]);
-    setPersisted(result.persisted);
+    setPersisted(storageIsPersistent && result.persisted);
   };
 
   return (
@@ -90,7 +162,7 @@ export default function App() {
         <p className="app-header__kicker">WE OUT HERE · 20–23 AUG 2026</p>
         <h1>Field Notes</h1>
         <p className="app-header__intro">
-          A private, offline-ready place for your festival weekend.
+          A private, local-first place for your festival weekend.
         </p>
       </header>
       <nav className="planner-nav" aria-label="Planner views">
@@ -115,7 +187,7 @@ export default function App() {
           events={savedEvents}
           favouriteIds={favouriteIds}
           notesByEventId={notesByEventId}
-          now={new Date()}
+          now={now}
           persisted={persisted}
           removedIds={removedIds}
           onToggleFavourite={toggleFavourite}

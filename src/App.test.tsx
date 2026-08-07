@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -38,6 +38,7 @@ describe("App", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -68,6 +69,111 @@ describe("App", () => {
       "aria-current",
       "page",
     );
+  });
+
+  it("does not claim offline readiness before the cache status is known", () => {
+    render(<App />);
+
+    const appHeader = screen
+      .getByRole("heading", { name: "Field Notes" })
+      .closest("header");
+    expect(appHeader).not.toBeNull();
+    expect(appHeader).not.toHaveTextContent(/offline-ready/i);
+  });
+
+  it("continues with an in-memory plan when localStorage access throws", () => {
+    vi.unstubAllGlobals();
+    const localStorageDescriptor = Object.getOwnPropertyDescriptor(
+      window,
+      "localStorage",
+    );
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      get() {
+        throw new DOMException("Storage blocked", "SecurityError");
+      },
+    });
+
+    try {
+      render(<App />);
+
+      expect(
+        screen.getByRole("heading", { name: "Build your plan" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("status", { name: "Storage unavailable" }),
+      ).toHaveTextContent(/cannot persist/i);
+    } finally {
+      if (localStorageDescriptor) {
+        Object.defineProperty(window, "localStorage", localStorageDescriptor);
+      } else {
+        Reflect.deleteProperty(window, "localStorage");
+      }
+    }
+  });
+
+  it("refreshes the current plan moment on a periodic clock", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T13:19:30+01:00"));
+    window.localStorage.setItem(
+      ITINERARY_STORAGE_KEY,
+      JSON.stringify({
+        favouriteIds: ["thursday:main-stage:kotoa"],
+        notesByEventId: {},
+      }),
+    );
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Next" })).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(60_000));
+
+    expect(screen.getByRole("heading", { name: "Now" })).toBeInTheDocument();
+  });
+
+  it("refreshes the current plan moment immediately on visibility and focus", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T13:19:30+01:00"));
+    window.localStorage.setItem(
+      ITINERARY_STORAGE_KEY,
+      JSON.stringify({
+        favouriteIds: ["thursday:main-stage:kotoa"],
+        notesByEventId: {},
+      }),
+    );
+    const visibilityDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      "visibilityState",
+    );
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      value: "visible",
+    });
+
+    try {
+      render(<App />);
+      expect(screen.getByRole("heading", { name: "Next" })).toBeInTheDocument();
+
+      vi.setSystemTime(new Date("2026-08-20T13:20:30+01:00"));
+      act(() => document.dispatchEvent(new Event("visibilitychange")));
+      expect(screen.getByRole("heading", { name: "Now" })).toBeInTheDocument();
+
+      vi.setSystemTime(new Date("2026-08-20T14:01:00+01:00"));
+      act(() => window.dispatchEvent(new Event("focus")));
+      expect(
+        screen.queryByRole("heading", { name: "Now" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      if (visibilityDescriptor) {
+        Object.defineProperty(
+          document,
+          "visibilityState",
+          visibilityDescriptor,
+        );
+      } else {
+        Reflect.deleteProperty(document, "visibilityState");
+      }
+    }
   });
 
   it("shares saved events and Event Notes between Browse and My plan", async () => {

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
@@ -150,6 +150,38 @@ describe("PlanView", () => {
     expect(saveNote).toHaveBeenLastCalledWith(
       "one",
       "Meet by the left speaker after soundcheck",
+    );
+  });
+
+  it("restores focus to My plan when the open event is removed", async () => {
+    const user = userEvent.setup();
+    const savedEvent = event({ id: "one", title: "Now playing" });
+    const view = render(
+      <PlanView
+        {...baseProps}
+        events={[savedEvent]}
+        favouriteIds={new Set(["one"])}
+        now={new Date("2026-08-21T19:00:00+01:00")}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "View Now playing details" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Remove Now playing" }),
+    );
+    view.rerender(
+      <PlanView
+        {...baseProps}
+        events={[]}
+        favouriteIds={new Set()}
+        now={new Date("2026-08-21T19:00:00+01:00")}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "My plan" })).toHaveFocus(),
     );
   });
 

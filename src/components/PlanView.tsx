@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SCHEDULE_LAST_CHECKED } from "../data/schedule";
 import type { FestivalEvent, ProgrammeDay } from "../domain/festival";
 import {
@@ -56,6 +56,7 @@ export function PlanView({
 }: PlanViewProps) {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const planHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const sortedEvents = useMemo(
     () => [...events].sort(compareByStartThenTitle),
     [events],
@@ -80,6 +81,19 @@ export function PlanView({
     ? sortedEvents.find((event) => event.id === selectedEventId)
     : undefined;
 
+  useEffect(() => {
+    if (!selectedEventId || selectedEvent) {
+      return;
+    }
+
+    const restoreFocusFrame = window.requestAnimationFrame(() => {
+      planHeadingRef.current?.focus();
+      setSelectedEventId(null);
+    });
+
+    return () => window.cancelAnimationFrame(restoreFocusFrame);
+  }, [selectedEvent, selectedEventId]);
+
   const openDetails = (eventId: string, opener: HTMLButtonElement) => {
     detailsOpenerRef.current = opener;
     setSelectedEventId(eventId);
@@ -90,7 +104,9 @@ export function PlanView({
       <header className="plan-view__header">
         <div>
           <p className="section-kicker">Your weekend at a glance</p>
-          <h2 id="plan-heading">My plan</h2>
+          <h2 id="plan-heading" ref={planHeadingRef} tabIndex={-1}>
+            My plan
+          </h2>
         </div>
         <button
           className="download-button"
