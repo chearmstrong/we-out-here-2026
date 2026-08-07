@@ -6,15 +6,21 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
+      includeAssets: ["icons/icon-192.png", "icons/icon-512.png"],
       manifest: {
-        name: "We Out Here 2026 — Field Notes",
+        name: "Field Notes: We Out Here 2026",
         short_name: "Field Notes",
-        start_url: "/",
+        start_url: "./",
         display: "standalone",
-        background_color: "#f4f0e6",
-        theme_color: "#1d201c",
+        background_color: "#192522",
+        theme_color: "#192522",
+        icons: [
+          { src: "icons/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "icons/icon-512.png", sizes: "512x512", type: "image/png" },
+        ],
       },
+      workbox: { globPatterns: ["**/*.{js,css,html,ico,png,svg,json}"] },
     }),
   ],
   test: {
