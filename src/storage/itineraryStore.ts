@@ -50,20 +50,46 @@ export function createItineraryStore(
   replacements: ReadonlyMap<string, string>,
 ) {
   let memory: StoredItinerary = { favouriteIds: [], notesByEventId: {} };
+  let memoryIsDirty = false;
   let persisted = true;
 
   const reconcile = (): Omit<ItineraryState, "persisted"> => {
+    const sourceFavouriteIds = unique(memory.favouriteIds);
     const migratedIds = unique(
-      memory.favouriteIds.map((id) => replacements.get(id) ?? id),
+      sourceFavouriteIds.map((id) => replacements.get(id) ?? id),
     );
     const removedIds = migratedIds.filter((id) => !validIds.has(id));
     const favouriteIds = migratedIds.filter((id) => validIds.has(id));
     const favouriteIdSet = new Set(favouriteIds);
-    const notesByEventId = Object.fromEntries(
-      Object.entries(memory.notesByEventId)
-        .map(([id, note]) => [replacements.get(id) ?? id, note])
-        .filter(([id]) => favouriteIdSet.has(id)),
-    );
+    const migratedNotes = new Map<string, string>();
+
+    // Current-ID notes win; mapped notes fill only otherwise-empty targets.
+    for (const sourceId of sourceFavouriteIds) {
+      const targetId = replacements.get(sourceId) ?? sourceId;
+      const note = memory.notesByEventId[sourceId];
+      if (
+        targetId === sourceId &&
+        favouriteIdSet.has(targetId) &&
+        note !== undefined
+      ) {
+        migratedNotes.set(targetId, note);
+      }
+    }
+
+    for (const sourceId of sourceFavouriteIds) {
+      const targetId = replacements.get(sourceId) ?? sourceId;
+      const note = memory.notesByEventId[sourceId];
+      if (
+        targetId !== sourceId &&
+        favouriteIdSet.has(targetId) &&
+        !migratedNotes.has(targetId) &&
+        note !== undefined
+      ) {
+        migratedNotes.set(targetId, note);
+      }
+    }
+
+    const notesByEventId = Object.fromEntries(migratedNotes);
 
     memory = { favouriteIds, notesByEventId };
     return { ...memory, removedIds };
@@ -71,14 +97,16 @@ export function createItineraryStore(
 
   return {
     load(): ItineraryState {
-      try {
-        const stored = storage.getItem(ITINERARY_STORAGE_KEY);
-        if (stored !== null) {
-          memory = parseStoredItinerary(JSON.parse(stored) as unknown);
+      if (!memoryIsDirty) {
+        try {
+          const stored = storage.getItem(ITINERARY_STORAGE_KEY);
+          if (stored !== null) {
+            memory = parseStoredItinerary(JSON.parse(stored) as unknown);
+          }
+        } catch {
+          memory = { favouriteIds: [], notesByEventId: {} };
+          persisted = false;
         }
-      } catch {
-        memory = { favouriteIds: [], notesByEventId: {} };
-        persisted = false;
       }
 
       return { ...reconcile(), persisted };
@@ -104,8 +132,10 @@ export function createItineraryStore(
 
       try {
         storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(memory));
+        memoryIsDirty = false;
         persisted = true;
       } catch {
+        memoryIsDirty = true;
         persisted = false;
       }
 
@@ -116,8 +146,10 @@ export function createItineraryStore(
       memory = { favouriteIds: [], notesByEventId: {} };
       try {
         storage.removeItem(ITINERARY_STORAGE_KEY);
+        memoryIsDirty = false;
         persisted = true;
       } catch {
+        memoryIsDirty = true;
         persisted = false;
       }
 

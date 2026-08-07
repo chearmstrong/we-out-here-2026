@@ -117,6 +117,31 @@ describe("createItineraryStore", () => {
     expect(createItineraryStore(storage, validIds, new Map([["old", "new"]])).load().favouriteIds).toEqual(["new"]);
   });
 
+  it("does not migrate an orphan note whose source event was not saved", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["new"],
+      notesByEventId: { old: "Orphan note" },
+    }));
+
+    expect(createItineraryStore(storage, validIds, new Map([["old", "new"]])).load().notesByEventId).toEqual({});
+  });
+
+  it("keeps the current-event note when a mapped note collides", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["old", "new"],
+      notesByEventId: {
+        new: "Current-event note",
+        old: "Migrated note",
+      },
+    }));
+
+    expect(createItineraryStore(storage, validIds, new Map([["old", "new"]])).load().notesByEventId).toEqual({
+      new: "Current-event note",
+    });
+  });
+
   it("loads a legacy favourite-ID array and reports unknown saved IDs", () => {
     const storage = new MemoryStorage();
     storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(["one", "missing", "one", 123]));
@@ -154,11 +179,51 @@ describe("createItineraryStore", () => {
     expect(store.load()).toEqual({ favouriteIds: ["one"], notesByEventId: {}, removedIds: [], persisted: false });
   });
 
+  it("does not resurrect older persisted state after a failed save", () => {
+    const failures = new Set<"read" | "write" | "remove">();
+    const storage = new UnavailableStorage(failures);
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["one"],
+      notesByEventId: { one: "Old note" },
+    }));
+    const store = createItineraryStore(storage, validIds, noReplacements);
+    expect(store.load().favouriteIds).toEqual(["one"]);
+    failures.add("write");
+
+    expect(store.save({ favouriteIds: ["two"], notesByEventId: { two: "New note" } })).toEqual({ persisted: false });
+    expect(store.load()).toEqual({
+      favouriteIds: ["two"],
+      notesByEventId: { two: "New note" },
+      removedIds: [],
+      persisted: false,
+    });
+  });
+
   it("clears in-memory state and reports a failed persistent removal", () => {
     const storage = new UnavailableStorage(new Set(["remove"]));
     const store = createItineraryStore(storage, validIds, noReplacements);
     store.save({ favouriteIds: ["one"], notesByEventId: { one: "A note" } });
 
     expect(store.clear()).toEqual({ persisted: false });
+  });
+
+  it("does not resurrect persisted state after a failed clear", () => {
+    const failures = new Set<"read" | "write" | "remove">();
+    const storage = new UnavailableStorage(failures);
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["one"],
+      notesByEventId: { one: "A note" },
+    }));
+    const store = createItineraryStore(storage, validIds, noReplacements);
+    expect(store.load().favouriteIds).toEqual(["one"]);
+    failures.add("remove");
+
+    expect(store.clear()).toEqual({ persisted: false });
+    expect(store.load()).toEqual({
+      favouriteIds: [],
+      notesByEventId: {},
+      removedIds: [],
+      persisted: false,
+    });
   });
 });
