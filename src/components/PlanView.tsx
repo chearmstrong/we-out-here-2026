@@ -6,6 +6,7 @@ import {
   getClashingEventIds,
   getCurrentAndNext,
   getCurrentProgrammeDay,
+  getNextProgrammeDay,
 } from "../planner/itinerary";
 import { EventCard, programmeDayLabel } from "./EventCard";
 import { EventDetailsDialog } from "./EventDetailsDialog";
@@ -67,6 +68,10 @@ export function PlanView({
   );
   const currentProgrammeDay = useMemo(
     () => getCurrentProgrammeDay(sortedEvents, now),
+    [now, sortedEvents],
+  );
+  const nextProgrammeDay = useMemo(
+    () => getNextProgrammeDay(sortedEvents, now),
     [now, sortedEvents],
   );
   const clashingIds = useMemo(
@@ -179,6 +184,10 @@ export function PlanView({
             );
             const isCurrentProgrammeDay =
               !isBeforeFestival && programmeDay === currentProgrammeDay;
+            const isNextProgrammeDay =
+              !isBeforeFestival &&
+              currentProgrammeDay === null &&
+              programmeDay === nextProgrammeDay;
 
             return (
               <section className="plan-day" key={programmeDay}>
@@ -187,6 +196,7 @@ export function PlanView({
                   <h3>
                     {programmeDayLabel(programmeDay)}
                     {isCurrentProgrammeDay ? " · Current Programme Day" : ""}
+                    {isNextProgrammeDay ? " · Next Programme Day" : ""}
                   </h3>
                 </header>
                 <div className="plan-timeline">

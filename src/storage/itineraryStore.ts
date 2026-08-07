@@ -10,11 +10,13 @@ export type StoredItinerary = Pick<
   "favouriteIds" | "notesByEventId"
 >;
 
+type PersistedItinerary = StoredItinerary & { removedIds: string[] };
+
 export const ITINERARY_STORAGE_KEY = "we-out-here-2026:itinerary:v1";
 
 const unique = (ids: readonly string[]): string[] => [...new Set(ids)];
 
-const parseStoredItinerary = (parsed: unknown): StoredItinerary => {
+const parseStoredItinerary = (parsed: unknown): PersistedItinerary => {
   const legacyIds = Array.isArray(parsed) ? parsed : [];
   const candidate =
     parsed && typeof parsed === "object"
@@ -29,6 +31,10 @@ const parseStoredItinerary = (parsed: unknown): StoredItinerary => {
     !Array.isArray(candidate.notesByEventId)
       ? candidate.notesByEventId
       : {};
+  const candidateRemovedIds =
+    "removedIds" in candidate && Array.isArray(candidate.removedIds)
+      ? candidate.removedIds
+      : [];
 
   return {
     favouriteIds: unique(
@@ -41,15 +47,33 @@ const parseStoredItinerary = (parsed: unknown): StoredItinerary => {
         ([, note]) => typeof note === "string" && note.length <= 140,
       ),
     ),
+    removedIds: unique(
+      candidateRemovedIds.filter(
+        (value): value is string => typeof value === "string",
+      ),
+    ),
   };
 };
+
+const serializeItinerary = (itinerary: PersistedItinerary): string =>
+  JSON.stringify({
+    favouriteIds: itinerary.favouriteIds,
+    notesByEventId: itinerary.notesByEventId,
+    ...(itinerary.removedIds.length > 0
+      ? { removedIds: itinerary.removedIds }
+      : {}),
+  });
 
 export function createItineraryStore(
   storage: Storage,
   validIds: ReadonlySet<string>,
   replacements: ReadonlyMap<string, string>,
 ) {
-  let memory: StoredItinerary = { favouriteIds: [], notesByEventId: {} };
+  let memory: PersistedItinerary = {
+    favouriteIds: [],
+    notesByEventId: {},
+    removedIds: [],
+  };
   let memoryIsDirty = false;
   let persisted = true;
 
@@ -58,7 +82,10 @@ export function createItineraryStore(
     const migratedIds = unique(
       sourceFavouriteIds.map((id) => replacements.get(id) ?? id),
     );
-    const removedIds = migratedIds.filter((id) => !validIds.has(id));
+    const removedIds = unique([
+      ...memory.removedIds,
+      ...migratedIds.filter((id) => !validIds.has(id)),
+    ]);
     const favouriteIds = migratedIds.filter((id) => validIds.has(id));
     const favouriteIdSet = new Set(favouriteIds);
     const migratedNotes = new Map<string, string>();
@@ -91,22 +118,43 @@ export function createItineraryStore(
 
     const notesByEventId = Object.fromEntries(migratedNotes);
 
-    memory = { favouriteIds, notesByEventId };
+    memory = { favouriteIds, notesByEventId, removedIds };
     return { ...memory, removedIds };
+  };
+
+  const persistMemory = (): { persisted: boolean } => {
+    try {
+      storage.setItem(ITINERARY_STORAGE_KEY, serializeItinerary(memory));
+      memoryIsDirty = false;
+      persisted = true;
+    } catch {
+      memoryIsDirty = true;
+      persisted = false;
+    }
+
+    return { persisted };
   };
 
   return {
     load(): ItineraryState {
       if (!memoryIsDirty) {
+        let stored: string | null = null;
         try {
-          const stored = storage.getItem(ITINERARY_STORAGE_KEY);
+          stored = storage.getItem(ITINERARY_STORAGE_KEY);
           if (stored !== null) {
             memory = parseStoredItinerary(JSON.parse(stored) as unknown);
           }
         } catch {
-          memory = { favouriteIds: [], notesByEventId: {} };
+          memory = { favouriteIds: [], notesByEventId: {}, removedIds: [] };
           persisted = false;
+          return { ...reconcile(), persisted };
         }
+
+        const reconciled = reconcile();
+        if (stored !== null) {
+          persistMemory();
+        }
+        return { ...reconciled, persisted };
       }
 
       return { ...reconcile(), persisted };
@@ -128,22 +176,19 @@ export function createItineraryStore(
               favouriteIdSet.has(id),
           ),
         ),
+        removedIds: memory.removedIds,
       };
 
-      try {
-        storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(memory));
-        memoryIsDirty = false;
-        persisted = true;
-      } catch {
-        memoryIsDirty = true;
-        persisted = false;
-      }
+      return persistMemory();
+    },
 
-      return { persisted };
+    dismissRemoved(): { persisted: boolean } {
+      memory = { ...memory, removedIds: [] };
+      return persistMemory();
     },
 
     clear(): { persisted: boolean } {
-      memory = { favouriteIds: [], notesByEventId: {} };
+      memory = { favouriteIds: [], notesByEventId: {}, removedIds: [] };
       try {
         storage.removeItem(ITINERARY_STORAGE_KEY);
         memoryIsDirty = false;

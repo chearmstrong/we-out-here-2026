@@ -5,6 +5,7 @@ import {
   getClashingEventIds,
   getCurrentAndNext,
   getCurrentProgrammeDay,
+  getNextProgrammeDay,
 } from "./itinerary";
 
 const event = (
@@ -118,8 +119,11 @@ describe("getCurrentProgrammeDay", () => {
     expect(getCurrentProgrammeDay([overnight], new Date("2026-08-22T01:00:00+01:00"))).toBe("friday");
   });
 
-  it("uses the next event's Programme Day when no event is active", () => {
-    expect(getCurrentProgrammeDay(events, new Date("2026-08-21T12:00:00+01:00"))).toBe("friday");
+  it("does not call an upcoming Programme Day current during a plan gap", () => {
+    const at = new Date("2026-08-21T12:00:00+01:00");
+
+    expect(getCurrentProgrammeDay(events, at)).toBeNull();
+    expect(getNextProgrammeDay(events, at)).toBe("friday");
   });
 
   it("returns null when there is no current or next event", () => {

@@ -96,6 +96,12 @@ export function getCurrentProgrammeDay(
   events: readonly FestivalEvent[],
   at: Date,
 ): ProgrammeDay | null {
-  const { now, next } = getCurrentAndNext(events, at);
-  return now?.programmeDay ?? next?.programmeDay ?? null;
+  return getCurrentAndNext(events, at).now?.programmeDay ?? null;
+}
+
+export function getNextProgrammeDay(
+  events: readonly FestivalEvent[],
+  at: Date,
+): ProgrammeDay | null {
+  return getCurrentAndNext(events, at).next?.programmeDay ?? null;
 }

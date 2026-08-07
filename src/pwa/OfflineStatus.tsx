@@ -24,9 +24,16 @@ export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
       {state === "updating" ? (
         <div>
           <p role="status">A planner update is available</p>
-          <p>Your saved planner stays available until you choose to update.</p>
+          <p>
+            This open planner will not reload. Allow the update, then close and
+            reopen Field Notes to use it.
+          </p>
+          <p>
+            If you leave it waiting, your browser may activate it after every
+            Field Notes tab or app window is closed.
+          </p>
           <button type="button" onClick={onRefresh}>
-            Update now
+            Allow update
           </button>
         </div>
       ) : null}

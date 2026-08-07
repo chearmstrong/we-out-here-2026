@@ -5,7 +5,13 @@ import {
   getClashingEventIds,
   type BrowseFilters,
 } from "../planner/itinerary";
-import { EventCard, programmeDayLabel } from "./EventCard";
+import {
+  CategoryIcon,
+  categoryLabel,
+  EventCard,
+  formatTimeRange,
+  programmeDayLabel,
+} from "./EventCard";
 import { EventDetailsDialog } from "./EventDetailsDialog";
 import { Filters } from "./Filters";
 
@@ -40,6 +46,61 @@ type EventCardListProps = {
   onToggleFavourite: (eventId: string) => void;
   onViewDetails: (eventId: string, opener: HTMLButtonElement) => void;
 };
+
+const TIMETABLE_PIXELS_PER_MINUTE = 2;
+const TIMETABLE_LANE_HEIGHT = 120;
+const TIMETABLE_MINIMUM_TARGET_SIZE = 44;
+const hourFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: "Europe/London",
+});
+
+type PositionedEvent = {
+  event: FestivalEvent;
+  lane: number;
+  left: number;
+  durationWidth: number;
+  width: number;
+};
+
+function positionVenueEvents(
+  events: readonly FestivalEvent[],
+  rangeStart: number,
+): { events: PositionedEvent[]; laneCount: number } {
+  const laneEnds: number[] = [];
+  const positioned = events.map((event) => {
+    const startsAt = Date.parse(event.startsAt);
+    const endsAt = Date.parse(event.endsAt);
+    const interactionEndsAt = Math.max(
+      endsAt,
+      startsAt +
+        (TIMETABLE_MINIMUM_TARGET_SIZE / TIMETABLE_PIXELS_PER_MINUTE) *
+          60_000,
+    );
+    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= startsAt);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = interactionEndsAt;
+
+    const durationWidth = Math.max(
+      ((endsAt - startsAt) / 60_000) * TIMETABLE_PIXELS_PER_MINUTE,
+      2,
+    );
+
+    return {
+      event,
+      lane,
+      left:
+        ((startsAt - rangeStart) / 60_000) *
+        TIMETABLE_PIXELS_PER_MINUTE,
+      durationWidth,
+      width: Math.max(durationWidth, TIMETABLE_MINIMUM_TARGET_SIZE),
+    };
+  });
+
+  return { events: positioned, laneCount: Math.max(laneEnds.length, 1) };
+}
 
 function EventCardList({
   events,
@@ -81,6 +142,20 @@ function Timetable({
         const dayEvents = events.filter(
           (event) => event.programmeDay === programmeDay,
         );
+        const earliestStart = Math.min(
+          ...dayEvents.map((event) => Date.parse(event.startsAt)),
+        );
+        const latestEnd = Math.max(
+          ...dayEvents.map((event) => Date.parse(event.endsAt)),
+        );
+        const rangeStart = Math.floor(earliestStart / 3_600_000) * 3_600_000;
+        const rangeEnd = Math.ceil(latestEnd / 3_600_000) * 3_600_000;
+        const rangeMinutes = (rangeEnd - rangeStart) / 60_000;
+        const trackWidth = rangeMinutes * TIMETABLE_PIXELS_PER_MINUTE;
+        const hourMarks = Array.from(
+          { length: rangeMinutes / 60 + 1 },
+          (_, index) => rangeStart + index * 3_600_000,
+        );
         const venues = [...new Set(dayEvents.map((event) => event.venue))].sort(
           (left, right) => left.localeCompare(right),
         );
@@ -88,25 +163,137 @@ function Timetable({
         return (
           <section className="timetable-day" key={programmeDay}>
             <h3>{programmeDayLabel(programmeDay)}</h3>
-            <div className="timetable-grid">
-              {venues.map((venue) => {
-                const venueEvents = dayEvents.filter(
-                  (event) => event.venue === venue,
-                );
+            <p className="timetable-hint">
+              Scroll sideways to compare start times and spot open gaps.
+            </p>
+            <div className="timetable-scroll">
+              <div
+                className="timetable-chart"
+                style={{ width: `${trackWidth + 144}px` }}
+              >
+                <div className="timetable-axis-label" aria-hidden="true">
+                  Venue / time
+                </div>
+                <div
+                  className="timetable-axis"
+                  role="group"
+                  aria-label={`${programmeDayLabel(programmeDay)} time axis`}
+                  style={{ width: `${trackWidth}px` }}
+                >
+                  {hourMarks.map((mark, index) => (
+                    <time
+                      className="timetable-hour"
+                      dateTime={new Date(mark).toISOString()}
+                      key={mark}
+                      style={{
+                        left: `${index * 60 * TIMETABLE_PIXELS_PER_MINUTE}px`,
+                      }}
+                    >
+                      {hourFormatter.format(new Date(mark))}
+                    </time>
+                  ))}
+                </div>
 
-                return (
-                  <section className="timetable-venue" key={venue}>
-                    <h4>{venue}</h4>
-                    <EventCardList
-                      events={venueEvents}
-                      favouriteIds={favouriteIds}
-                      clashingIds={clashingIds}
-                      onToggleFavourite={onToggleFavourite}
-                      onViewDetails={onViewDetails}
-                    />
-                  </section>
-                );
-              })}
+                {venues.map((venue) => {
+                  const venueEvents = dayEvents.filter(
+                    (event) => event.venue === venue,
+                  );
+                  const positioned = positionVenueEvents(
+                    venueEvents,
+                    rangeStart,
+                  );
+
+                  return (
+                    <section
+                      className="timetable-venue"
+                      aria-label={`${venue} timetable`}
+                      key={venue}
+                    >
+                      <h4>{venue}</h4>
+                      <div
+                        className="timetable-track"
+                        style={{
+                          width: `${trackWidth}px`,
+                          height: `${positioned.laneCount * TIMETABLE_LANE_HEIGHT}px`,
+                        }}
+                      >
+                        {positioned.events.map(
+                          ({ event, lane, left, width, durationWidth }) => {
+                            const isClashing = clashingIds.has(event.id);
+                            const clashDescriptionId = `timetable-clash-${event.id}`;
+
+                            return (
+                              <article
+                                aria-label={`${event.title} timetable event`}
+                                className={`timetable-event timetable-event--${event.category}${favouriteIds.has(event.id) ? " timetable-event--saved" : ""}${isClashing ? " timetable-event--clashing" : ""}`}
+                                key={event.id}
+                                style={{
+                                  left: `${left}px`,
+                                  top: `${lane * TIMETABLE_LANE_HEIGHT}px`,
+                                  width: `${width}px`,
+                                }}
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="timetable-event__duration"
+                                  style={{ width: `${durationWidth}px` }}
+                                />
+                                <button
+                                  className="timetable-event__details"
+                                  type="button"
+                                  style={{ minWidth: "44px" }}
+                                  aria-label={`View ${event.title} details from timetable`}
+                                  aria-describedby={
+                                    isClashing ? clashDescriptionId : undefined
+                                  }
+                                  onClick={(clickEvent) =>
+                                    onViewDetails(
+                                      event.id,
+                                      clickEvent.currentTarget,
+                                    )
+                                  }
+                                >
+                                  <span className="timetable-event__category">
+                                    <CategoryIcon category={event.category} />
+                                    <span>{categoryLabel(event.category)}</span>
+                                  </span>
+                                  <strong>{event.title}</strong>
+                                  <time dateTime={event.startsAt}>
+                                    {formatTimeRange(event)}
+                                  </time>
+                                </button>
+                                <button
+                                  className="timetable-event__save"
+                                  type="button"
+                                  style={{ width: "44px", height: "44px" }}
+                                  aria-pressed={favouriteIds.has(event.id)}
+                                  aria-label={`${favouriteIds.has(event.id) ? "Remove" : "Save"} ${event.title}`}
+                                  aria-describedby={
+                                    isClashing ? clashDescriptionId : undefined
+                                  }
+                                  onClick={() => onToggleFavourite(event.id)}
+                                >
+                                  <span aria-hidden="true">
+                                    {favouriteIds.has(event.id) ? "−" : "+"}
+                                  </span>
+                                </button>
+                                {isClashing ? (
+                                  <span
+                                    className="visually-hidden"
+                                    id={clashDescriptionId}
+                                  >
+                                    Clashes with another saved event
+                                  </span>
+                                ) : null}
+                              </article>
+                            );
+                          },
+                        )}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
             </div>
           </section>
         );

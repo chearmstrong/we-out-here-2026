@@ -39,7 +39,7 @@ The site is a React and TypeScript app built with Vite and deployed to GitHub Pa
 
 All festival content is bundled as a manually verified, versioned local Schedule Snapshot with a last-checked date. The production app reads only that snapshot and the browser's local storage. It makes no request to the festival site or any other external service at runtime.
 
-A service worker precaches the built app shell, the schedule, fonts, and icons. After the first successful connected load, the application opens from cache when offline. A visible status makes this capability clear. When a connected browser detects a newer snapshot, it offers an explicit update; the existing cached app and itinerary remain available until the user accepts.
+A service worker precaches the built app shell, its bundled schedule, and icons. After the first successful connected load, the application opens from cache when offline. A visible status makes this capability clear. When a connected browser detects a newer snapshot, it offers an action to allow the waiting update while the open planner and browser-local itinerary remain available. The action does not reload the current screen or create a lasting version preference.
 
 ```text
 Official set-times source
@@ -63,17 +63,19 @@ Each event has a stable ID designed to survive a time change, plus title, Progra
 
 Before a release, the schedule data is manually curated from the official music and wider-programme set-times pages, verified, and published as a new Schedule Snapshot. Build-time validation checks required values, unique IDs, recognised categories, valid Programme Days/times, and that an event does not end before it starts.
 
-When set times change, manually update and redeploy the snapshot at the same Pages URL. Stable IDs never include the start time. A confirmed rename or venue move uses an explicit curator mapping; the app never performs fuzzy matching. Existing recognised IDs remain saved, confirmed mappings preserve the saved event and note, and unavailable IDs are shown as changed or removed rather than silently discarded.
+When set times change, manually update and redeploy the snapshot at the same Pages URL. Stable IDs never include the start time. A confirmed rename or venue move uses an explicit curator mapping; the app never performs fuzzy matching. Existing recognised IDs remain saved, confirmed mappings preserve the saved event and note, and unavailable IDs are shown as changed or removed rather than silently discarded. Reconciled IDs and mapped notes are written back through the itinerary store. Removal notices remain across reloads until dismissed; a failed browser-storage write keeps the reconciled or dismissed state for the current visit and reports that it could not persist.
+
+The browser controls service-worker version promotion. Field Notes never reloads an open planner to apply an update. Its update action can ask the browser to activate a waiting worker, after which the user closes and reopens the app to see the new version. Ignoring a waiting update is not a persistent rejection: the browser may activate it after every controlled Field Notes tab or app window closes. The app stores no durable version-acceptance preference.
 
 ## User experience
 
 ### My Plan
 
-This is the default home screen. With no saved events it is a friendly discovery state with search and a path into browse. With a plan, it prioritises the active event, the next event, and the Current Programme Day in time order. Before the festival it prioritises the next saved event and the full itinerary; an overnight event stays with its official Programme Day. It is designed for a quick, one-handed check in bright outdoor conditions.
+This is the default home screen. With no saved events it is a friendly discovery state with search and a path into browse. With a plan, it prioritises the active event, the next event, and Programme Day context in time order. A day containing an active saved event is the Current Programme Day; when no saved event is active, the upcoming event belongs to the Next Programme Day instead. Before the festival it prioritises the next saved event and the full itinerary; an overnight event stays with its official Programme Day. It is designed for a quick, one-handed check in bright outdoor conditions.
 
 ### Browse
 
-Browse is for advance planning and ad-hoc discovery. A searchable list is the primary browsing tool; day, venue, and category filters refine it. A timetable view provides broader context and helps explore schedule gaps. Saving and removing an event is available from every relevant screen and immediately changes My Plan.
+Browse is for advance planning and ad-hoc discovery. A searchable list is the primary browsing tool; day, venue, and category filters refine it. A secondary, horizontally scrollable timetable has a labelled hourly axis, venue rows, and event blocks positioned by start time and duration so schedule gaps are visible. Saving and removing an event is available from every relevant screen and immediately changes My Plan.
 
 ### Event card and details
 
@@ -95,12 +97,12 @@ The base palette uses dark green, coral, sun yellow, and warm off-white. Categor
 
 - On a device that has loaded the site while online, the complete app and its schedule remain available offline.
 - If first opened without a network, show a concise message that an initial online visit is required to download the planner.
-- If storage is unavailable or unreadable, continue to show the schedule and explain that saved plans and Event Notes cannot persist until browser storage is available.
+- If storage is unavailable or unreadable, continue to show the schedule and explain that saved plans, Event Notes, reconciled schedule changes, and dismissed change notices cannot persist until browser storage is available.
 - Do not claim the app is offline-ready until the service worker has cached its assets successfully.
 
 ## Quality strategy
 
-Automated tests cover schedule-data validation, stable-ID migrations, favourite/note persistence, search/filter behaviour, Current Programme Day selection, chronological plan ordering, overlap detection, calendar-note export, update-prompt behaviour, and empty/storage-unavailable states. Build verification includes a GitHub Pages sub-path check so deployed assets resolve correctly. Before release, test the built site at phone dimensions, load it online, disable connectivity, and confirm that browsing, notes, and favourites still work.
+Automated tests cover schedule-data validation, durable stable-ID migrations and notice dismissal, favourite/note persistence, search/filter behaviour, Current and Next Programme Day selection, chronological plan ordering, overlap detection, temporal timetable positioning, UTF-8-safe calendar line folding and note export, update-prompt behaviour, and empty/storage-unavailable states. Build verification includes a GitHub Pages sub-path check so deployed assets resolve correctly. Before release, test the built site at phone dimensions, load it online, disable connectivity, and confirm that browsing, notes, and favourites still work.
 
 ## Deployment
 

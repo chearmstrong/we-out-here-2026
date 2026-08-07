@@ -108,6 +108,74 @@ describe("createItineraryStore", () => {
       removedIds: ["unknown"],
       persisted: true,
     });
+    expect(JSON.parse(storage.getItem(ITINERARY_STORAGE_KEY) ?? "null")).toEqual({
+      favouriteIds: ["new", "one"],
+      notesByEventId: { new: "Migrated note", one: "Existing note" },
+      removedIds: ["unknown"],
+    });
+  });
+
+  it("keeps removal notices dismissed after a reload", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["one", "missing"],
+      notesByEventId: {},
+    }));
+    const first = createItineraryStore(storage, validIds, noReplacements);
+    expect(first.load().removedIds).toEqual(["missing"]);
+
+    expect(first.dismissRemoved()).toEqual({ persisted: true });
+
+    expect(createItineraryStore(storage, validIds, noReplacements).load()).toEqual({
+      favouriteIds: ["one"],
+      notesByEventId: {},
+      removedIds: [],
+      persisted: true,
+    });
+  });
+
+  it("keeps reconciled state in memory when its durable write fails", () => {
+    const failures = new Set<"read" | "write" | "remove">();
+    const storage = new UnavailableStorage(failures);
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["old", "missing"],
+      notesByEventId: { old: "Mapped note" },
+    }));
+    failures.add("write");
+    const store = createItineraryStore(storage, validIds, new Map([["old", "new"]]));
+
+    expect(store.load()).toEqual({
+      favouriteIds: ["new"],
+      notesByEventId: { new: "Mapped note" },
+      removedIds: ["missing"],
+      persisted: false,
+    });
+    expect(store.load()).toEqual({
+      favouriteIds: ["new"],
+      notesByEventId: { new: "Mapped note" },
+      removedIds: ["missing"],
+      persisted: false,
+    });
+  });
+
+  it("keeps a failed removal-notice dismissal for this visit without claiming persistence", () => {
+    const failures = new Set<"read" | "write" | "remove">();
+    const storage = new UnavailableStorage(failures);
+    storage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify({
+      favouriteIds: ["one", "missing"],
+      notesByEventId: {},
+    }));
+    const store = createItineraryStore(storage, validIds, noReplacements);
+    expect(store.load().removedIds).toEqual(["missing"]);
+    failures.add("write");
+
+    expect(store.dismissRemoved()).toEqual({ persisted: false });
+    expect(store.load()).toEqual({
+      favouriteIds: ["one"],
+      notesByEventId: {},
+      removedIds: [],
+      persisted: false,
+    });
   });
 
   it("deduplicates favourites after explicit-ID migration", () => {

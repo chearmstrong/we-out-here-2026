@@ -79,6 +79,33 @@ describe("createCalendar", () => {
     expect(ics).not.toContain("VALARM");
     expect(ics).toContain("END:VCALENDAR\r\n");
   });
+
+  it("folds a long title into RFC 5545 content lines of at most 75 octets", () => {
+    const title = "A very long festival title ".repeat(5).trim();
+    const ics = createCalendar([event({ id: "long-title", title })]);
+    const physicalLines = ics.split("\r\n").filter(Boolean);
+
+    expect(physicalLines.some((line) => line.startsWith(" "))).toBe(true);
+    expect(
+      physicalLines.every((line) => new TextEncoder().encode(line).length <= 75),
+    ).toBe(true);
+    expect(ics.replace(/\r\n[ \t]/g, "")).toContain(`SUMMARY:${title}`);
+  });
+
+  it("folds a long multibyte Event Note without splitting UTF-8 characters", () => {
+    const note = "Meet by the café 🎺 after the set — ".repeat(5).trim();
+    const ics = createCalendar(
+      [event({ id: "long-note", title: "Kotoa" })],
+      { "long-note": note },
+    );
+    const physicalLines = ics.split("\r\n").filter(Boolean);
+
+    expect(
+      physicalLines.every((line) => new TextEncoder().encode(line).length <= 75),
+    ).toBe(true);
+    expect(ics.replace(/\r\n[ \t]/g, "")).toContain(`DESCRIPTION:${note}`);
+    expect(ics).not.toContain("�");
+  });
 });
 
 describe("downloadCalendar", () => {

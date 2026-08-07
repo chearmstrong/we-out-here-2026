@@ -253,7 +253,7 @@ describe("App", () => {
       }),
     );
 
-    render(<App />);
+    const visit = render(<App />);
 
     expect(screen.getByRole("article", { name: "Kotoa" })).toBeInTheDocument();
     expect(
@@ -265,6 +265,10 @@ describe("App", () => {
     await user.click(
       screen.getByRole("button", { name: "Dismiss schedule changes" }),
     );
+    expect(screen.queryByText(/changed or was removed/i)).not.toBeInTheDocument();
+
+    visit.unmount();
+    render(<App />);
     expect(screen.queryByText(/changed or was removed/i)).not.toBeInTheDocument();
   });
 

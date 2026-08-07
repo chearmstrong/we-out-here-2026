@@ -86,6 +86,24 @@ describe("PlanView", () => {
     ).toHaveLength(2);
   });
 
+  it("labels an upcoming day as Next Programme Day during a plan gap", () => {
+    render(
+      <PlanView
+        {...baseProps}
+        events={[overlappingSavedEvents[0]]}
+        favouriteIds={new Set(["one"])}
+        now={new Date("2026-08-21T12:00:00+01:00")}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Friday · Next Programme Day" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: /Current Programme Day/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("keeps post-midnight events with their official Programme Day and orders each day", () => {
     const overnight = event({
       id: "overnight",

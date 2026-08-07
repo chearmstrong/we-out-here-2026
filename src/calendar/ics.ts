@@ -17,6 +17,29 @@ export const escapeIcs = (value: string): string =>
     .replace(/,/g, "\\,")
     .replace(/\r?\n/g, "\\n");
 
+export function foldIcsLine(line: string): string {
+  const encoder = new TextEncoder();
+  const segments: string[] = [];
+  let segment = "";
+  let segmentOctets = 0;
+
+  for (const character of line) {
+    const characterOctets = encoder.encode(character).length;
+    const limit = segments.length === 0 ? 75 : 74;
+    if (segmentOctets + characterOctets > limit) {
+      segments.push(segment);
+      segment = character;
+      segmentOctets = characterOctets;
+    } else {
+      segment += character;
+      segmentOctets += characterOctets;
+    }
+  }
+
+  segments.push(segment);
+  return segments.join("\r\n ");
+}
+
 export function createCalendar(
   events: readonly FestivalEvent[],
   notesByEventId: Readonly<Record<string, string>> = {},
@@ -42,7 +65,8 @@ export function createCalendar(
     );
   }
 
-  return `${lines.join("\r\n")}\r\nEND:VCALENDAR\r\n`;
+  lines.push("END:VCALENDAR");
+  return `${lines.map(foldIcsLine).join("\r\n")}\r\n`;
 }
 
 export function downloadCalendar(

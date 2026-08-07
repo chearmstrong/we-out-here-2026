@@ -16,15 +16,17 @@ it("does not claim offline use is ready before caching succeeds", () => {
   expect(screen.queryByText("Saved for offline use")).not.toBeInTheDocument();
 });
 
-it("leaves the cached planner running until the user accepts an update", async () => {
+it("leaves the cached planner running when the user allows an update", async () => {
   const user = userEvent.setup();
   const refresh = vi.fn();
   render(<OfflineStatus state="updating" onRefresh={refresh} />);
 
   expect(screen.getByText("A planner update is available")).toBeInTheDocument();
+  expect(screen.getByText(/open planner will not reload/i)).toBeInTheDocument();
+  expect(screen.getByText(/after every Field Notes tab or app window is closed/i)).toBeInTheDocument();
   expect(refresh).not.toHaveBeenCalled();
 
-  await user.click(screen.getByRole("button", { name: "Update now" }));
+  await user.click(screen.getByRole("button", { name: "Allow update" }));
 
   expect(refresh).toHaveBeenCalledOnce();
 });

@@ -10,7 +10,7 @@ Browse the programme with search and day, venue, and category filters, then save
 
 **Download calendar** exports the saved itinerary as `we-out-here-2026-plan.ics`. Event Notes are included as descriptions and the file contains no automatic alarms. The calendar application importing it may apply its own notification defaults, which Field Notes cannot control.
 
-The installed app keeps its current cached snapshot until a connected update is available and the user chooses **Update now**. The update is never forced and the current screen is not reloaded automatically; reload or reopen the planner after accepting to use the newly activated version.
+An open planner is never reloaded automatically when a connected update arrives. **Allow update** asks the browser to activate the waiting version, but the open screen keeps running its existing version until it is closed and reopened. Leaving the update waiting is not a permanent rejection: the browser may activate it after every open Field Notes tab or app window is closed. Field Notes does not store a lasting accept/reject preference for app versions.
 
 ## Local development
 
@@ -35,7 +35,7 @@ The production build is written to `dist/` and uses the GitHub Pages project pat
 
 In the repository's GitHub **Settings → Pages**, set **Source** to **GitHub Actions**. A push to `main`, or a manual workflow run, then uses `.github/workflows/deploy-pages.yml` to install locked dependencies, run all tests, build the static site, upload `dist/`, and deploy it to the `github-pages` environment. The workflow grants read-only repository access plus the `pages: write` and `id-token: write` permissions required by Pages.
 
-After deployment, verify the project-path URL on a phone: load it online, wait for the offline-ready status, save an event and Event Note, reload offline, and confirm that browsing, the saved plan, and the note still work. For an update release, also leave the old version open, deploy the new snapshot, confirm the connected update prompt appears, accept it, reload or reopen, and verify the new last-checked date while the saved itinerary and notes remain intact.
+After deployment, verify the project-path URL on a phone: load it online, wait for the offline-ready status, save an event and Event Note, reload offline, and confirm that browsing, the saved plan, and the note still work. For an update release, also leave the old version open, deploy the new snapshot, and confirm the connected update prompt appears without reloading that screen. Test both browser paths: choose **Allow update**, then close and reopen; and leave the update waiting, close every Field Notes tab or app window, then reopen. In both cases, verify the new last-checked date while the saved itinerary and notes remain intact.
 
 ## Update the Schedule Snapshot
 

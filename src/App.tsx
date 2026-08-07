@@ -195,7 +195,11 @@ export default function App() {
           onBrowse={() => setView("browse")}
           onExport={() => downloadCalendar(savedEvents, notesByEventId)}
           onClear={clearPlan}
-          onDismissScheduleChanges={() => setRemovedIds([])}
+          onDismissScheduleChanges={() => {
+            const result = store.dismissRemoved();
+            setRemovedIds([]);
+            setPersisted(storageIsPersistent && result.persisted);
+          }}
         />
       ) : (
         <BrowseView

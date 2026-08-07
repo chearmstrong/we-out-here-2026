@@ -22,7 +22,7 @@ Complete this sequence for every schedule deployment:
 4. Change `SCHEDULE_VERSION`, `SCHEDULE_LAST_CHECKED`, this document's checked date, and the verified record totals to describe the newly checked snapshot.
 5. Run `npm test -- src/data/scheduleValidator.test.ts`, `npm test`, and `npm run build`; do not deploy unless all three commands pass.
 6. Deploy the generated `dist/` artifact to the same GitHub Pages project URL through the GitHub Actions workflow.
-7. With the previous version already cached, connect that browser and verify that it receives the update prompt without replacing the current snapshot automatically.
-8. Choose **Update now**, then reload or reopen the planner and verify the new last-checked date and schedule. Confirm that the saved itinerary and Event Notes remain intact, and repeat the offline browse, favourite, and Event Note checks.
+7. With the previous version already cached, connect that browser and verify that it receives the update prompt without reloading the open planner.
+8. Verify both update paths. First choose **Allow update**, close and reopen Field Notes, and check the new last-checked date and schedule. Then repeat from the previous version without allowing the update, close every Field Notes tab or app window, reopen, and check that the browser may activate the waiting version. Field Notes does not persist an accept/reject preference. In both paths, confirm that the saved itinerary and Event Notes remain intact, and repeat the offline browse, favourite, and Event Note checks.
 
 The production app reads this committed snapshot and browser-local data only. It must not scrape or fetch either official source, or any other external content service, at runtime.
