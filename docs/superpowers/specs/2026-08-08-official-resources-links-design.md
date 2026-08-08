@@ -7,7 +7,8 @@ Make Field Notes easier to trust and inspect without turning it into an official
 ## Experience
 
 - Add a compact **Official resources** group in the existing footer after the privacy and unofficial-planner copy.
-- It contains two clearly external links: **View source on GitHub** and **Official set times**.
+- It starts with a plain-language sentence: this is a local-first planner using a verified programme snapshot, with saved plans and notes kept in the browser.
+- It contains three clearly external links: **How Field Notes works** (the repository README), **View source on GitHub**, and **Official set times**.
 - Links open in a new tab with safe external-link attributes. They remain ordinary hyperlinks, so a user can follow them when connected while the planner itself remains fully usable offline.
 - Do not add a map placeholder. A 2026 official map has not been verified at a stable public URL. When one is available, a later change may add a third outbound **Official festival map** link.
 
@@ -15,7 +16,8 @@ Make Field Notes easier to trust and inspect without turning it into an official
 
 - Keep URLs in `src/config/site.ts` alongside the existing Pages configuration rather than scattering string literals across UI code.
 - `App.tsx` remains responsible for static footer content; no new component, state, storage schema, runtime request, dependency, or PWA change is needed.
-- Add focused UI and configuration tests for visible link names, destinations, and external-link behaviour.
+- Refresh `README.md` as the canonical project guide: explain using the planner, local-only data, first online load, update behaviour, calendar export, local development, GitHub Pages publishing, schedule-snapshot maintenance, and unofficial attribution. Link to the detailed curator procedure in `docs/content-sources.md`.
+- Add focused UI and configuration tests for the explanatory copy, visible link names, destinations, and external-link behaviour.
 
 ## Boundaries
 
