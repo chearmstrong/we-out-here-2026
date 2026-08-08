@@ -8,7 +8,7 @@ Open the planner online once and wait for **Saved for offline use** before relyi
 
 After **Saved for offline use** appears, the optional Home Screen guidance can make Field Notes quicker to launch. Browser menu labels and available Home Screen options vary.
 
-Browse the programme with search and day, venue, and category filters, then save events to **My plan**. Each saved event can have one Event Note of up to 140 characters. Notes and selections stay on that browser and device; there is no cross-device sync.
+Browse the programme with search and day, venue, and category filters, then save events to **My plan**. On a phone, **Schedule** presents the filtered programme as a chronological agenda; the visual time-and-venue timetable is available on larger screens. Each saved event can have one Event Note of up to 140 characters. Notes and selections stay on that browser and device; there is no cross-device sync.
 
 **Download calendar** exports the saved itinerary as `we-out-here-2026-plan.ics`. Event Notes are included as descriptions and the file contains no automatic alarms. The calendar application importing it may apply its own notification defaults, which Field Notes cannot control.
 

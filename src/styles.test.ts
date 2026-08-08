@@ -10,11 +10,15 @@ afterEach(() => {
   document.head.querySelector("style[data-test-styles]")?.remove();
 });
 
-it("keeps phone CSS on the same portrait and short coarse landscape policy as React", () => {
+it("keeps phone CSS on the same size-only schedule policy as React", () => {
   const style = document.createElement("style");
   style.dataset.testStyles = "true";
   style.textContent = readFileSync(resolve("src/styles.css"), "utf8");
   document.head.append(style);
+
+  expect(PHONE_LAYOUT_QUERY).toBe(
+    "(max-width: 48rem), (max-width: 60rem) and (max-height: 32rem)",
+  );
 
   const phoneRules = [...(style.sheet?.cssRules ?? [])].find(
     (rule): rule is CSSMediaRule =>

@@ -1271,8 +1271,7 @@ main {
   font-size: 0.9rem;
 }
 
-@media (max-width: 42rem),
-  (pointer: coarse) and (orientation: landscape) and (max-height: 32rem) {
+@media (max-width: 48rem), (max-width: 60rem) and (max-height: 32rem) {
   .app-header::after {
     top: -4.5rem;
     right: -4.5rem;

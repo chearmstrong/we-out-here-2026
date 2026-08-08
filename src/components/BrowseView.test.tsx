@@ -30,6 +30,7 @@ const events: FestivalEvent[] = [
 
 function mockPhoneLayout(initialMatches: boolean) {
   const listeners = new Set<EventListener>();
+  const requestedQueries: string[] = [];
   const mediaQueryList = {
     matches: initialMatches,
     media: PHONE_LAYOUT_QUERY,
@@ -42,9 +43,16 @@ function mockPhoneLayout(initialMatches: boolean) {
     },
   } as unknown as MediaQueryList;
 
-  vi.stubGlobal("matchMedia", vi.fn(() => mediaQueryList));
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => {
+      requestedQueries.push(query);
+      return mediaQueryList;
+    }),
+  );
 
   return {
+    requestedQueries,
     setMatches(matches: boolean) {
       Object.defineProperty(mediaQueryList, "matches", {
         configurable: true,
@@ -57,6 +65,47 @@ function mockPhoneLayout(initialMatches: boolean) {
       listeners.forEach((listener) => listener(changeEvent));
     },
   };
+}
+
+function mockViewportLayout(width: number, height: number) {
+  const requestedQueries: string[] = [];
+  const mediaQueryLists = new Map<string, MediaQueryList>();
+
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => {
+      requestedQueries.push(query);
+      const existingMediaQueryList = mediaQueryLists.get(query);
+      if (existingMediaQueryList) {
+        return existingMediaQueryList;
+      }
+
+      const matches = query.split(",").some((branch) =>
+        branch.trim().split("and").every((condition) => {
+          const match = condition
+            .trim()
+            .match(/^\(max-(width|height): (\d+)rem\)$/);
+          if (!match) {
+            return false;
+          }
+
+          const value = match[1] === "width" ? width : height;
+          return value <= Number(match[2]) * 16;
+        }),
+      );
+      const mediaQueryList = {
+        matches,
+        media: query,
+        onchange: null,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      } as unknown as MediaQueryList;
+      mediaQueryLists.set(query, mediaQueryList);
+      return mediaQueryList;
+    }),
+  );
+
+  return { requestedQueries };
 }
 
 describe("BrowseView", () => {
@@ -181,6 +230,48 @@ describe("BrowseView", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show list" })).toBeVisible();
   });
+
+  it.each([
+    ["phone portrait", 390, 844, true],
+    ["phone landscape", 844, 390, true],
+    ["wide phone landscape", 932, 430, true],
+    ["widest phone landscape", 956, 440, true],
+    ["desktop", 1280, 900, false],
+  ])(
+    "mounts the correct schedule presentation on %s",
+    async (_name, width, height, isPhone) => {
+      const viewport = mockViewportLayout(width, height);
+      const user = userEvent.setup();
+
+      render(
+        <BrowseView
+          events={[events[0]]}
+          favouriteIds={new Set()}
+          onToggleFavourite={() => undefined}
+        />,
+      );
+
+      await user.click(
+        screen.getByRole("button", {
+          name: isPhone ? "Show schedule" : "Show timetable",
+        }),
+      );
+
+      expect(viewport.requestedQueries).toContain(PHONE_LAYOUT_QUERY);
+
+      if (isPhone) {
+        expect(
+          screen.getByRole("region", { name: "Thursday agenda" }),
+        ).toBeVisible();
+        expect(screen.queryByLabelText("Programme timetable")).not.toBeInTheDocument();
+      } else {
+        expect(screen.getByLabelText("Programme timetable")).toBeVisible();
+        expect(
+          screen.queryByRole("region", { name: "Thursday agenda" }),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
 
   it("positions events against a labelled time axis so timetable gaps stay visible", async () => {
     const user = userEvent.setup();

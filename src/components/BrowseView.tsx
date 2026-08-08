@@ -53,7 +53,7 @@ const TIMETABLE_PIXELS_PER_MINUTE = 2;
 const TIMETABLE_LANE_HEIGHT = 120;
 const TIMETABLE_MINIMUM_TARGET_SIZE = 44;
 export const PHONE_LAYOUT_QUERY =
-  "(max-width: 42rem), (pointer: coarse) and (orientation: landscape) and (max-height: 32rem)";
+  "(max-width: 48rem), (max-width: 60rem) and (max-height: 32rem)";
 const hourFormatter = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",
