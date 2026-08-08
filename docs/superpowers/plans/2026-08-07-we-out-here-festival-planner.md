@@ -18,7 +18,7 @@
 - Model Programme Day separately from Calendar Timestamps: Programme Day groups the official schedule and itinerary; timestamps drive current/next status, clashes, and calendar export.
 - Use original branding and UI assets. Do not use or recreate We Out Here logos, wordmarks, illustrations, photography, or distinctive display type; state that the public site is unofficial and not affiliated with or endorsed by the festival.
 - Design for a phone outdoors: category icons must have text labels, all controls must work by keyboard, and colour must not be the only carrier of meaning.
-- Service-worker caching must make the complete downloaded application and Schedule Snapshot available offline after one successful online load. A detected update is offered explicitly, never forced.
+- Service-worker caching must make the complete downloaded application and Schedule Snapshot available offline after one successful online load. A detected update never reloads an open planner; the browser may still activate a waiting version after all controlled planner clients close.
 - Calendar export includes Event Notes but no automatic alarm; browser push notifications are out of scope.
 - Publish manually verified Schedule Snapshots from the repository with a visible last-checked date. Do not scrape or fetch the official site at runtime, use automatic schedule import, or fuzzy-match renamed events.
 
@@ -337,8 +337,11 @@ export function getCurrentAndNext(events: readonly FestivalEvent[], at: Date): {
 }
 
 export function getCurrentProgrammeDay(events: readonly FestivalEvent[], at: Date): ProgrammeDay | null {
-  const { now, next } = getCurrentAndNext(events, at);
-  return now?.programmeDay ?? next?.programmeDay ?? null;
+  return getCurrentAndNext(events, at).now?.programmeDay ?? null;
+}
+
+export function getNextProgrammeDay(events: readonly FestivalEvent[], at: Date): ProgrammeDay | null {
+  return getCurrentAndNext(events, at).next?.programmeDay ?? null;
 }
 ```
 
@@ -386,7 +389,7 @@ export function createItineraryStore(storage: Storage, validIds: ReadonlySet<str
 }
 ```
 
-Do not mutate the input arrays. Sort by `startsAt`, then title, to give stable display and export order. Storage must migrate only IDs present in the explicit `scheduleChanges` mapping, remove favourite IDs that are not in the current `schedule`, preserve mapped Event Notes, and return a `removedIds` list for the UI to explain schedule changes. `save` rejects notes longer than 140 characters and drops a note whenever its event is no longer saved.
+Do not mutate the input arrays. Sort by `startsAt`, then title, to give stable display and export order. Storage must migrate only IDs present in the explicit `scheduleChanges` mapping, remove favourite IDs that are not in the current `schedule`, preserve mapped Event Notes, and return a `removedIds` list for the UI to explain schedule changes. Persist the reconciled payload and pending removal notices; persist dismissal through the same store. If either write fails, retain the newer state for the current visit and report non-persistence without rereading stale storage. `save` rejects notes longer than 140 characters and drops a note whenever its event is no longer saved.
 
 - [ ] **Step 4: Run focused tests and the full suite.**
 
@@ -447,7 +450,7 @@ export function createCalendar(events: readonly FestivalEvent[], notesByEventId:
 }
 ```
 
-The `toIcsLocal` helper preserves the UK local programme wall time embedded in the ISO value and creates a floating calendar event, avoiding a UTC date shift. `escapeIcs` escapes backslash, comma, semicolon, and newline. `downloadCalendar` creates a `text/calendar;charset=utf-8` Blob and downloads `we-out-here-2026-plan.ics`; it includes each Event Note as the calendar description, adds no `VALARM`, and returns immediately for an empty plan.
+The `toIcsLocal` helper preserves the UK local programme wall time embedded in the ISO value and creates a floating calendar event, avoiding a UTC date shift. `escapeIcs` escapes backslash, comma, semicolon, and newline. Fold generated content lines at 75 UTF-8 octets without splitting a multibyte character; continuation lines begin with one space included in their 75-octet budget. `downloadCalendar` creates a `text/calendar;charset=utf-8` Blob and downloads `we-out-here-2026-plan.ics`; it includes each Event Note as the calendar description, adds no `VALARM`, and returns immediately for an empty plan.
 
 - [ ] **Step 4: Run focused tests and type/build validation.**
 
@@ -489,11 +492,11 @@ it("does not claim offline use is ready before caching succeeds", () => {
   expect(screen.getByText(/Connect once to save this planner offline/i)).toBeInTheDocument();
 });
 
-it("leaves the cached planner running until the user accepts an update", async () => {
+it("leaves the cached planner running when the user allows an update", async () => {
   const user = userEvent.setup();
   const refresh = vi.fn();
   render(<OfflineStatus state="updating" onRefresh={refresh} />);
-  await user.click(screen.getByRole("button", { name: "Update now" }));
+  await user.click(screen.getByRole("button", { name: "Allow update" }));
   expect(refresh).toHaveBeenCalledOnce();
 });
 ```
@@ -528,7 +531,7 @@ VitePWA({
 })
 ```
 
-Register the worker with the React virtual module. `useOfflineStatus` starts at `offline-unavailable`, switches to `ready` only after registration success, exposes `updating` during a new worker installation, and calls the registration update callback only after the user chooses `Update now`. The existing snapshot’s last-checked date remains visible; the update prompt is generic until the new snapshot is loaded. It never reloads or discards the active cached snapshot automatically. Include the schedule in the generated build and confirm it matches the Workbox glob. Add an `<meta name="theme-color" content="#192522">` fallback in `index.html`.
+Register the worker with the React virtual module. `useOfflineStatus` starts at `offline-unavailable`, switches to `ready` only after registration success, exposes `updating` during a new worker installation, and calls the registration update callback only after the user chooses `Allow update`. The existing snapshot’s last-checked date remains visible; the update prompt is generic until the new snapshot is loaded. It never reloads the open planner. The prompt explains that allowing an update still requires closing and reopening to see it, and that a waiting update may activate after every controlled app client closes even when the user does not choose the action. No durable accept/reject preference is claimed. Include the schedule in the generated build and confirm it matches the Workbox glob. Add an `<meta name="theme-color" content="#192522">` fallback in `index.html`.
 
 - [ ] **Step 4: Run unit/build checks and manually prove offline fallback.**
 
@@ -616,7 +619,7 @@ export function EventCard({ event, isFavourite, isClashing, onToggleFavourite }:
 }
 ```
 
-Add a controlled `EventDetailsDialog` opened by a card’s `View details` button. It renders a labelled `role="dialog"` with title, complete formatted date/time range, venue, visible category icon/text, clash status, save/remove action, and close button; Escape and the close button call `onClose`. For a saved event it also renders a labelled text area, `Note for {title}`, capped at 140 characters; it saves locally through `onSaveNote(eventId, note)` and is unavailable while the event is not saved. Define `categoryLabel(category)` as the exact mapping `music → Music`, `talk → Talk`, `workshop → Workshop`, `family → Family`, and `other → Other`. `CategoryIcon` selects a matching Lucide icon but is always paired with that visible text. `Filters` owns controlled query/Programme Day/venue/category controls and uses labels, not placeholder-only input. `BrowseView` initializes to a chronological list and offers an explicitly labelled `Show timetable` / `Show list` toggle. The timetable is a responsive, horizontally scrollable grid with visible Programme Day/venue headers; it must not be the only way to browse. Use semantic buttons and cards throughout.
+Add a controlled `EventDetailsDialog` opened by a card’s `View details` button. It renders a labelled `role="dialog"` with title, complete formatted date/time range, venue, visible category icon/text, clash status, save/remove action, and close button; Escape and the close button call `onClose`. For a saved event it also renders a labelled text area, `Note for {title}`, capped at 140 characters; it saves locally through `onSaveNote(eventId, note)` and is unavailable while the event is not saved. Define `categoryLabel(category)` as the exact mapping `music → Music`, `talk → Talk`, `workshop → Workshop`, `family → Family`, and `other → Other`. `CategoryIcon` selects a matching Lucide icon but is always paired with that visible text. `Filters` owns controlled query/Programme Day/venue/category controls and uses labels, not placeholder-only input. `BrowseView` initializes to a chronological list and offers an explicitly labelled `Show timetable` / `Show list` toggle. The timetable is a responsive, horizontally scrollable temporal chart with labelled hourly axes, visible Programme Day/venue headers, and events positioned by start and duration so gaps remain apparent; it must not be the only way to browse. Use semantic buttons and cards throughout.
 
 - [ ] **Step 4: Run focused tests, the full suite, and manually test touch/keyboard use.**
 
@@ -681,7 +684,7 @@ const toggleFavourite = (id: string) => {
 };
 ```
 
-The app’s default view is `"plan"`; it changes only through the labelled planner navigation or the empty-state `onBrowse`. Derive `savedEvents` from `schedule`, not a copied storage payload. PlanView groups saved events by Programme Day and sorts each group. It uses `getCurrentAndNext`, `getCurrentProgrammeDay`, and `getClashingEventIds` for the active event, next event, grouping, and every rendered card. Before the festival, foreground the next saved event and render the complete itinerary. Include a visible inline warning if storage cannot persist, a dismissible schedule-change notice for removed IDs, a visible snapshot last-checked date, a “Download calendar” button that is disabled for an empty plan, and a confirmation before “Clear my plan”. Event Note edits save through the store and do not exist for unsaved events.
+The app’s default view is `"plan"`; it changes only through the labelled planner navigation or the empty-state `onBrowse`. Derive `savedEvents` from `schedule`, not a copied storage payload. PlanView groups saved events by Programme Day and sorts each group. It uses `getCurrentAndNext`, `getCurrentProgrammeDay`, `getNextProgrammeDay`, and `getClashingEventIds` for the active event, next event, active-versus-upcoming Programme Day context, grouping, and every rendered card. Before the festival, foreground the next saved event and render the complete itinerary. Include a visible inline warning if storage cannot persist, a durably dismissible schedule-change notice for removed IDs, a visible snapshot last-checked date, a “Download calendar” button that is disabled for an empty plan, and a confirmation before “Clear my plan”. Event Note edits save through the store and do not exist for unsaved events.
 
 Use the approved original visual system: dark green, coral, sun yellow, warm off-white, high contrast, editorial hierarchy, no copied festival assets. Place the required unofficial/non-affiliation statement in the app footer.
 
@@ -740,7 +743,7 @@ concurrency:
   cancel-in-progress: false
 ```
 
-Document local installation, development, test, build, Pages setup (“Source: GitHub Actions”), the first-online-load requirement, calendar export without alarms, Event Notes, data-update procedure, and the complete original/unofficial branding rule. Update `docs/content-sources.md` with the exact manual snapshot-update sequence (check source, update data and confirmed mapping, change last-checked date, run validation/tests, deploy, accept and verify the prompt) required before each schedule deployment.
+Document local installation, development, test, build, Pages setup (“Source: GitHub Actions”), the first-online-load requirement, calendar export without alarms, Event Notes, data-update procedure, and the complete original/unofficial branding rule. Update `docs/content-sources.md` with the exact manual snapshot-update sequence (check source, update data and confirmed mapping, change last-checked date, run validation/tests, deploy, verify the prompt, and test both allowed and browser-promoted update paths) required before each schedule deployment.
 
 - [ ] **Step 4: Verify the deployment artifact and Pages behaviour.**
 
@@ -763,5 +766,5 @@ git commit -m "ci: deploy festival planner to GitHub Pages"
 - [ ] The default home screen shows a discovery state when empty, then the current or next Programme Day, chronological saved events, Event Notes, and unambiguous clash notices; before the festival it foregrounds the next saved event.
 - [ ] The visual system is original, accessible, festival-adjacent in atmosphere, and visibly unofficial/non-affiliated.
 - [ ] Calendar download produces a usable `.ics` file for the selected itinerary, includes Event Notes, and adds no automatic alarm.
-- [ ] The snapshot displays a last-checked date. After an initial online visit, the deployed app works offline, including the schedule, itinerary, and Event Note changes; a connected update is offered but never forced.
+- [ ] The snapshot displays a last-checked date. After an initial online visit, the deployed app works offline, including the schedule, itinerary, and Event Note changes; a connected update never reloads an open planner, and guidance explains both explicit allowance and activation after all clients close.
 - [ ] `npm test` and `npm run build` pass, and the GitHub Pages workflow has successfully deployed the project-path build.
