@@ -6,7 +6,7 @@
 
 **Architecture:** `BrowseView` already owns the list/timetable mode and has separate `PhoneAgenda` and `Timetable` renderers. Replace the fragile pointer-dependent responsive policy with a size-based breakpoint shared by React and CSS, so the mode label and mounted renderer always agree. Keep filtering and itinerary state unchanged; document the resulting two-view experience in the README.
 
-**Tech Stack:** React 18, TypeScript, Vite, Vitest, Testing Library, CSS media queries.
+**Tech Stack:** React 19, TypeScript, Vite, Vitest, Testing Library, CSS media queries.
 
 ## Global Constraints
 

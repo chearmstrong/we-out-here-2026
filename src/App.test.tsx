@@ -191,6 +191,31 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "Now" })).toBeInTheDocument();
   });
 
+  it("reuses its planner clock when Browse opens without creating another interval", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-20T13:30:00+01:00"));
+    const setIntervalSpy = vi.spyOn(window, "setInterval");
+    const getItemSpy = vi.spyOn(window.localStorage, "getItem");
+    const mediaQueryList = {
+      matches: true,
+      media: "(max-width: 48rem)",
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    } as unknown as MediaQueryList;
+    vi.stubGlobal("matchMedia", () => mediaQueryList);
+    render(<App />);
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+    const initialStorageReads = getItemSpy.mock.calls.length;
+
+    act(() => screen.getByRole("button", { name: "Browse" }).click());
+    act(() => screen.getByRole("button", { name: "Show schedule" }).click());
+
+    expect(screen.getByRole("heading", { name: "Now / next" })).toBeVisible();
+    expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+    expect(getItemSpy).toHaveBeenCalledTimes(initialStorageReads);
+  });
+
   it("refreshes the current plan moment immediately on visibility and focus", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-20T13:19:30+01:00"));

@@ -75,7 +75,7 @@ This is the default home screen. With no saved events it is a friendly discovery
 
 ### Browse
 
-Browse is for advance planning and ad-hoc discovery. A searchable list is the primary browsing tool; day, venue, and category filters refine it. A secondary, horizontally scrollable timetable has a labelled hourly axis, venue rows, and event blocks positioned by start time and duration so schedule gaps are visible. Saving and removing an event is available from every relevant screen and immediately changes My Plan.
+Browse is for advance planning and ad-hoc discovery. A searchable list is the primary browsing tool; day, venue, and category filters refine it. A secondary, horizontally scrollable timetable has a labelled hourly axis, venue rows, and event blocks positioned by start time and duration so schedule gaps are visible. Browse cards and event details support saving and removing an event, which immediately changes My Plan. The phone Day schedule is details-only; its time-first rows open the same details for saving and removing.
 
 ### Event card and details
 

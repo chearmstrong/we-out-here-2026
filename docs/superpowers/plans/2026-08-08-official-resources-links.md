@@ -6,7 +6,7 @@
 
 **Architecture:** Define the three stable external destinations in `src/config/site.ts`. Keep the footer in `App.tsx` as the single visible home for concise explanation and resource links; no route, data request, storage, dependency, or PWA behaviour changes. Maintain `README.md` as the detailed project guide, with `docs/content-sources.md` as the exact schedule-update runbook.
 
-**Tech Stack:** React 18, TypeScript, Vitest, Testing Library, Vite PWA, Markdown.
+**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Vite PWA, Markdown.
 
 ## Global Constraints
 

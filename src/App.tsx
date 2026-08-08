@@ -238,6 +238,7 @@ export default function App({ offlineState, onRefresh }: AppProps) {
         <BrowseView
           events={schedule}
           favouriteIds={favouriteIds}
+          now={now}
           notesByEventId={notesByEventId}
           onToggleFavourite={toggleFavourite}
           onSaveNote={saveNote}

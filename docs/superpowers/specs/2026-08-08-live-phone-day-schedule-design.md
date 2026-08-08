@@ -18,7 +18,7 @@ Make Day schedule the useful in-the-moment companion during the festival, rather
 ## Technical design
 
 - Pass the app’s existing clock into `BrowseView`; use the same Europe/London event timestamp parsing used elsewhere to derive `past`, `current`, and `next` schedule events.
-- Keep date/time classification in a small pure planner helper. It accepts filtered events, the selected programme day, and `now`, then returns grouped visible events plus optional current/next and earlier event IDs. It must not read storage or use browser APIs.
+- Keep date/time classification in a small pure planner helper. It accepts the complete programme collection, the selected Programme Day, and `now`, then returns grouped visible events plus optional current/next and earlier event IDs. Browse query, venue, and category filters must not affect Day schedule. It must not read storage or use browser APIs.
 - `PhoneDaySchedule` consumes that view model. Saved only filters its own selected-day schedule rows without changing Browse filters or persistence.
 - A local React state value owns the Saved-only control. It resets only when the component remounts; it does not write localStorage.
 - Use semantic headings, buttons, `time` elements, and an accessible expanded/collapsed Earlier control. Keep the 44px target and existing dialog-focus fallback semantics.

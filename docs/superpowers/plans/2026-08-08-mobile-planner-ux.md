@@ -6,7 +6,7 @@
 
 **Architecture:** Keep filter/date policy in `src/planner/itinerary.ts`, where it can be tested without React. `BrowseView` consumes that policy to derive its initial selection and query-visible events, then mounts either a desktop venue timeline or a phone time-sorted agenda from the responsive viewport state. Styling fixes remain in the existing global stylesheet; no data source, storage schema, network behavior, or dependencies change.
 
-**Tech Stack:** React 18, TypeScript, Vitest, Testing Library, Vite PWA, CSS media queries.
+**Tech Stack:** React 19, TypeScript, Vitest, Testing Library, Vite PWA, CSS media queries.
 
 ## Global Constraints
 

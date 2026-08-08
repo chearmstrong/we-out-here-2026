@@ -63,6 +63,51 @@ it("keeps phone day schedule rows compact and free of horizontal scrolling", () 
   expect(rowRule?.style.getPropertyValue("overflow-x")).toBe("");
 });
 
+it("keeps phone day schedule controls and time groups distinct with 44px targets", () => {
+  const style = document.createElement("style");
+  style.dataset.testStyles = "true";
+  style.textContent = readFileSync(resolve("src/styles.css"), "utf8");
+  document.head.append(style);
+
+  const rules = [...(style.sheet?.cssRules ?? [])];
+  const controlRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".phone-day-schedule__control",
+  );
+  const inactiveControlHoverRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText ===
+        '.phone-day-schedule__control[aria-pressed="false"]:hover',
+  );
+  const groupRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".phone-day-schedule__group",
+  );
+  const earlierRowRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText ===
+        ".phone-day-schedule__groups--earlier .phone-day-schedule__row",
+  );
+
+  expect(controlRule?.style.getPropertyValue("min-height")).toBe("2.75rem");
+  expect(controlRule?.style.getPropertyValue("width")).toBe("fit-content");
+  expect(inactiveControlHoverRule?.style.getPropertyValue("background")).toBe(
+    "#fff1ba",
+  );
+  expect(groupRule?.style.getPropertyValue("min-width")).toBe("0");
+  expect(groupRule?.style.getPropertyValue("border-top")).not.toBe("");
+  expect(earlierRowRule?.style.getPropertyValue("background")).toBe(
+    "#f5f0e4",
+  );
+  expect(earlierRowRule?.style.getPropertyValue("border-left-color")).toBe(
+    "#8f8a7d",
+  );
+});
+
 it("keeps the open phone detail sheet bottom-aligned inside every safe-area edge", () => {
   const style = document.createElement("style");
   style.dataset.testStyles = "true";

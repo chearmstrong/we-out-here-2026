@@ -21,7 +21,7 @@ Complete this sequence for every schedule deployment:
 3. Update `src/data/scheduleChanges.ts` for any confirmed rename or venue move by adding the exact old-ID/new-ID mapping. Do not use fuzzy matching.
 4. Change `SCHEDULE_VERSION`, `SCHEDULE_LAST_CHECKED`, this document's checked date, and the verified record totals to describe the newly checked snapshot.
 5. Run `npm test -- src/data/scheduleValidator.test.ts`, `npm test`, and `npm run build`; do not deploy unless all three commands pass.
-6. Deploy the generated `dist/` artifact to the same GitHub Pages project URL through the GitHub Actions workflow.
+6. Commit the snapshot and documentation changes, then push them to `main` (or merge a reviewed pull request). The GitHub Actions workflow builds `dist/` and deploys that generated artifact to the same GitHub Pages project URL; do not commit `dist/`.
 7. With the previous version already cached, connect that browser and verify that it receives the update notice without reloading the open planner.
 8. Verify both update paths. First choose **Use update next time**, close and reopen Field Notes, and check the new last-checked date and schedule. Then repeat from the previous version without accepting the update, close every Field Notes tab or app window, reopen, and check that the browser may activate the waiting version. Field Notes does not persist an accept/reject preference. In both paths, confirm that the saved itinerary and Event Notes remain intact, and repeat the offline browse, favourite, and Event Note checks.
 

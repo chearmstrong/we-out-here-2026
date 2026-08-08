@@ -6,7 +6,7 @@
 
 **Architecture:** `BrowseView` continues to own filters, event details, saved state, and the desktop timetable. Its phone branch toggles between `EventCardList` for discovery and a new compact `PhoneDaySchedule` for the selected day; both consume the same filtered programme without new storage or data sources. `UpdateNotice` moves the existing explicit service-worker acceptance action from the lower offline status into `App`, directly under navigation.
 
-**Tech Stack:** React 18, TypeScript, Vite, Vitest, Testing Library, CSS media queries.
+**Tech Stack:** React 19, TypeScript, Vite, Vitest, Testing Library, CSS media queries.
 
 ## Global Constraints
 

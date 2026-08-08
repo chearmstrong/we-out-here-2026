@@ -3,7 +3,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
-import { BrowseView, PHONE_LAYOUT_QUERY } from "./BrowseView";
+import {
+  BrowseView as BrowseViewComponent,
+  PHONE_LAYOUT_QUERY,
+  type BrowseViewProps,
+} from "./BrowseView";
+
+function BrowseView({
+  now = new Date("2026-08-19T13:30:00+01:00"),
+  ...props
+}: Omit<BrowseViewProps, "now"> & { now?: Date }) {
+  return <BrowseViewComponent {...props} now={now} />;
+}
 
 const events: FestivalEvent[] = [
   {
@@ -255,6 +266,156 @@ describe("BrowseView", () => {
     expect(screen.getByRole("dialog", { name: "Kotoa details" })).toBeVisible();
   });
 
+  it("renders a live phone day schedule with saved and earlier controls", async () => {
+    mockViewportLayout(390, 844);
+    const user = userEvent.setup();
+    const earlierSet = {
+      ...events[0],
+      id: "thursday:main-stage:earlier-set",
+      title: "Earlier Set",
+      startsAt: "2026-08-20T12:00:00+01:00",
+      endsAt: "2026-08-20T13:00:00+01:00",
+    };
+    const nextSet = {
+      ...events[0],
+      id: "thursday:main-stage:next-set",
+      title: "Next Set",
+      startsAt: "2026-08-20T14:30:00+01:00",
+      endsAt: "2026-08-20T15:00:00+01:00",
+    };
+
+    render(
+      <BrowseView
+        events={[earlierSet, events[0], nextSet]}
+        favouriteIds={new Set([events[0].id])}
+        now={new Date("2026-08-20T13:30:00+01:00")}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Now / next" }),
+    ).toBeVisible();
+    expect(screen.getByText("On now")).toBeVisible();
+    expect(screen.getByText("Next up")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Saved only" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "Earlier" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Earlier Set day schedule event" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Saved only" }));
+
+    expect(
+      screen.queryByRole("button", { name: "Next Set day schedule event" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Search programme")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Venue")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Saved only" }));
+    await user.click(screen.getByRole("button", { name: "Earlier" }));
+
+    expect(
+      screen.getByRole("button", { name: "Earlier Set day schedule event" }),
+    ).toBeVisible();
+  });
+
+  it("uses the complete selected day for phone schedule while preserving Browse filters", async () => {
+    mockViewportLayout(390, 844);
+    const user = userEvent.setup();
+    const nextSet = {
+      ...events[0],
+      id: "thursday:second-stage:next-set",
+      title: "Next Set",
+      venue: "Second Stage",
+      category: "talk" as const,
+      startsAt: "2026-08-20T14:30:00+01:00",
+      endsAt: "2026-08-20T15:00:00+01:00",
+    };
+
+    render(
+      <BrowseView
+        events={[events[0], nextSet]}
+        favouriteIds={new Set()}
+        now={new Date("2026-08-20T13:30:00+01:00")}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("Search programme"), "missing");
+    await user.selectOptions(screen.getByLabelText("Venue"), "Main Stage");
+    await user.selectOptions(screen.getByLabelText("Category"), "talk");
+    expect(screen.getByRole("status")).toHaveTextContent("0 events");
+
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
+
+    expect(screen.getByLabelText("Programme Day")).toHaveValue("thursday");
+    expect(screen.queryByLabelText("Search programme")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Venue")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Category")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Saved only" })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Now / next" }),
+    ).toBeVisible();
+    expect(screen.getByText("On now")).toBeVisible();
+    expect(screen.getByText("Next up")).toBeVisible();
+    expect(screen.getByText("Next Set")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Show browse" }));
+
+    expect(screen.getByLabelText("Search programme")).toHaveValue("missing");
+    expect(screen.getByLabelText("Venue")).toHaveValue("Main Stage");
+    expect(screen.getByLabelText("Category")).toHaveValue("talk");
+    expect(screen.getByRole("status")).toHaveTextContent("0 events");
+  });
+
+  it("keeps before-festival phone schedules chronological without live controls", async () => {
+    mockViewportLayout(390, 844);
+    const user = userEvent.setup();
+    const earlySet = {
+      ...events[0],
+      id: "thursday:main-stage:early-set-before-festival",
+      title: "Early Set",
+      startsAt: "2026-08-20T12:00:00+01:00",
+      endsAt: "2026-08-20T12:30:00+01:00",
+    };
+
+    render(
+      <BrowseView
+        events={[events[0], earlySet]}
+        favouriteIds={new Set()}
+        now={new Date("2026-08-19T13:30:00+01:00")}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
+
+    expect(
+      screen.queryByRole("heading", { name: "Now / next" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Earlier" })).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: /day schedule event$/ }).map((row) =>
+        row.getAttribute("aria-label"),
+      ),
+    ).toEqual(["Early Set day schedule event", "Kotoa day schedule event"]);
+
+    await user.click(screen.getByRole("button", { name: "Saved only" }));
+
+    expect(
+      screen.getByText("No saved events match this schedule view."),
+    ).toBeVisible();
+  });
+
   it("keeps the compact phone schedule at wide landscape sizes", async () => {
     mockViewportLayout(956, 440);
     const user = userEvent.setup();
@@ -361,7 +522,7 @@ describe("BrowseView", () => {
     ).toBeVisible();
   });
 
-  it("keeps a concrete day selected when All days is chosen during phone schedule", async () => {
+  it("offers only concrete programme days during phone schedule", async () => {
     mockViewportLayout(390, 844);
     const user = userEvent.setup();
 
@@ -374,14 +535,12 @@ describe("BrowseView", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Show schedule" }));
-    await user.selectOptions(screen.getByLabelText("Programme Day"), "all");
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("Programme Day")).toHaveValue("thursday"),
-    );
     expect(
-      screen.getByRole("region", { name: "Thursday day schedule" }),
-    ).toBeVisible();
+      [...screen.getByLabelText("Programme Day").querySelectorAll("option")].map(
+        (option) => option.getAttribute("value"),
+      ),
+    ).toEqual(["thursday", "friday", "saturday", "sunday"]);
   });
 
   it("keeps a concrete day selected when an All-days desktop timetable becomes phone schedule", async () => {

@@ -6,7 +6,7 @@
 
 **Architecture:** Introduce a pure planner helper that derives a selected day’s grouped schedule, past/current/upcoming classification, and Now/Next summaries from event timestamps and a supplied clock. `BrowseView` receives the app’s existing clock, uses the helper only in its phone schedule branch, and owns the local Saved-only and Earlier-expansion controls. Existing details, favourites, notes, storage, desktop timetable, and update notice remain separate.
 
-**Tech Stack:** React 18, TypeScript, Vite, Vitest, Testing Library, CSS.
+**Tech Stack:** React 19, TypeScript, Vite, Vitest, Testing Library, CSS.
 
 ## Global Constraints
 
