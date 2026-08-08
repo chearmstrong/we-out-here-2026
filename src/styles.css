@@ -419,6 +419,12 @@ main {
   line-height: 1.45;
 }
 
+.app-footer__resources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+}
+
 .app-footer p {
   margin: 0;
 }

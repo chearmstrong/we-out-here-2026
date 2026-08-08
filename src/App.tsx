@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { downloadCalendar } from "./calendar/ics";
 import { BrowseView } from "./components/BrowseView";
 import { PlanView } from "./components/PlanView";
+import {
+  OFFICIAL_SET_TIMES_URL,
+  PROJECT_README_URL,
+  PROJECT_REPOSITORY_URL,
+} from "./config/site";
 import { schedule } from "./data/schedule";
 import { scheduleChanges } from "./data/scheduleChanges";
 import { createItineraryStore } from "./storage/itineraryStore";
@@ -216,7 +221,26 @@ export default function App() {
           Field Notes is an unofficial personal planner and is not affiliated
           with or endorsed by We Out Here Festival.
         </p>
+        <p>
+          Field Notes is a local-first planner using a verified programme
+          snapshot and saves plans and notes in the browser.
+        </p>
         <p>Your saved plan and Event Notes stay only in this browser.</p>
+        <nav className="app-footer__resources" aria-label="Footer resources">
+          <a href={PROJECT_README_URL} target="_blank" rel="noreferrer">
+            How Field Notes works
+          </a>
+          <a
+            href={PROJECT_REPOSITORY_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View source on GitHub
+          </a>
+          <a href={OFFICIAL_SET_TIMES_URL} target="_blank" rel="noreferrer">
+            Official set times
+          </a>
+        </nav>
       </footer>
     </main>
   );

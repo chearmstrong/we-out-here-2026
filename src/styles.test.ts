@@ -42,3 +42,23 @@ it("keeps the open phone detail sheet bottom-aligned inside every safe-area edge
     "safe-area-inset-left",
   );
 });
+
+it("keeps footer resource links visibly separated and able to wrap on phones", () => {
+  const style = document.createElement("style");
+  style.dataset.testStyles = "true";
+  style.textContent = readFileSync(resolve("src/styles.css"), "utf8");
+  document.head.append(style);
+
+  const footerResourcesRule = [...(style.sheet?.cssRules ?? [])].find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".app-footer__resources",
+  );
+
+  expect(footerResourcesRule).toBeDefined();
+  expect(footerResourcesRule?.style.getPropertyValue("display")).toBe("flex");
+  expect(footerResourcesRule?.style.getPropertyValue("flex-wrap")).toBe(
+    "wrap",
+  );
+  expect(footerResourcesRule?.style.getPropertyValue("gap")).not.toBe("");
+});

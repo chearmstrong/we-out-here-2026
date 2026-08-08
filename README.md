@@ -1,10 +1,10 @@
 # Field Notes
 
-Field Notes is an offline-capable, personal festival planner for the published We Out Here 2026 music and wider programmes. It bundles a manually verified Schedule Snapshot, stores one shared plan and its Event Notes only in the current browser, and has no account, backend, telemetry, remote persistence, or runtime content fetch.
+Field Notes is an offline-capable, local-first personal festival planner for the published We Out Here 2026 music and wider programmes. It bundles a manually verified Schedule Snapshot, stores one shared plan and its Event Notes only in the current browser, and has no account, backend, telemetry, remote persistence, or runtime content fetch.
 
 ## Use the planner
 
-Open the planner online once and wait for **Saved for offline use** before relying on it without a connection. A browser cannot display this site's guidance on a first-ever offline visit because it has not downloaded the page or service worker yet. Clearing site data, using private browsing, or browser storage restrictions can remove or prevent persistence of the plan and Event Notes.
+Open the planner online once and wait for **Saved for offline use** before relying on it without a connection. A browser cannot show Field Notes on a first-ever offline visit because it has not downloaded the page or service worker yet. Clearing site data, using private browsing, or browser storage restrictions can remove or prevent browser storage of the plan and Event Notes.
 
 Browse the programme with search and day, venue, and category filters, then save events to **My plan**. Each saved event can have one Event Note of up to 140 characters. Notes and selections stay on that browser and device; there is no cross-device sync.
 
@@ -39,7 +39,11 @@ After deployment, verify the project-path URL on a phone: load it online, wait f
 
 ## Update the Schedule Snapshot
 
-Festival content is committed locally; the production app never scrapes or fetches programme data. Follow the release sequence in [docs/content-sources.md](docs/content-sources.md) for every schedule deployment. Stable event IDs do not include start times, and confirmed renames or venue moves use only explicit mappings—never fuzzy matching.
+Festival content is committed locally; the production app never scrapes or fetches programme data. Follow the numbered release sequence in [docs/content-sources.md](docs/content-sources.md) for every manual verified schedule snapshot deployment. Stable event IDs do not include start times, and confirmed renames or venue moves use only explicit mappings—never fuzzy matching.
+
+## Resources and attribution
+
+For the full product guide, see [How Field Notes works](https://github.com/chearmstrong/we-out-here-2026#readme), or [view the source on GitHub](https://github.com/chearmstrong/we-out-here-2026). The official [We Out Here set times](https://weoutherefestival.com/set-times/) are an external reference; Field Notes does not retrieve or reproduce them at runtime.
 
 ## Identity and attribution
 

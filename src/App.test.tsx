@@ -2,6 +2,11 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import {
+  OFFICIAL_SET_TIMES_URL,
+  PROJECT_README_URL,
+  PROJECT_REPOSITORY_URL,
+} from "./config/site";
 import { ITINERARY_STORAGE_KEY } from "./storage/itineraryStore";
 
 class MemoryStorage implements Storage {
@@ -347,5 +352,23 @@ describe("App", () => {
     expect(screen.getByRole("contentinfo")).toHaveTextContent(
       /not affiliated with or endorsed by We Out Here Festival/i,
     );
+  });
+
+  it("provides safe new-tab links to its public resources", () => {
+    render(<App />);
+
+    expect(screen.getByRole("contentinfo")).toHaveTextContent(
+      /local-first planner using a verified programme snapshot/i,
+    );
+    expect(screen.getByRole("link", { name: "How Field Notes works" }))
+      .toHaveAttribute("href", PROJECT_README_URL);
+    expect(screen.getByRole("link", { name: "View source on GitHub" }))
+      .toHaveAttribute("href", PROJECT_REPOSITORY_URL);
+    expect(screen.getByRole("link", { name: "Official set times" }))
+      .toHaveAttribute("href", OFFICIAL_SET_TIMES_URL);
+    for (const link of screen.getAllByRole("link")) {
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(link).toHaveAttribute("rel", "noreferrer");
+    }
   });
 });
