@@ -11,9 +11,14 @@ import {
 } from "./config/site";
 import { schedule } from "./data/schedule";
 import { scheduleChanges } from "./data/scheduleChanges";
+import { UpdateNotice, type OfflineStatusState } from "./pwa/OfflineStatus";
 import { createItineraryStore } from "./storage/itineraryStore";
 
 type PlannerView = "plan" | "browse";
+type AppProps = {
+  offlineState?: OfflineStatusState;
+  onRefresh?: () => void;
+};
 const PLANNER_CLOCK_INTERVAL_MS = 60_000;
 
 class SessionMemoryStorage implements Storage {
@@ -80,7 +85,7 @@ function usePlannerClock(): Date {
   return now;
 }
 
-export default function App() {
+export default function App({ offlineState, onRefresh }: AppProps) {
   const [{ store, initialItinerary, storageIsPersistent }] = useState(() => {
     const validEventIds = new Set(schedule.map((event) => event.id));
     const browserStorage = getBrowserStorage();
@@ -205,6 +210,10 @@ export default function App() {
           Browse
         </button>
       </nav>
+
+      {offlineState === "updating" && onRefresh ? (
+        <UpdateNotice onRefresh={onRefresh} />
+      ) : null}
 
       {view === "plan" ? (
         <PlanView

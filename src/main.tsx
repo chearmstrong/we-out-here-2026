@@ -10,7 +10,7 @@ function PlannerRoot() {
 
   return (
     <>
-      <App />
+      <App offlineState={state} onRefresh={refresh} />
       <OfflineStatus state={state} onRefresh={refresh} />
     </>
   );

@@ -77,6 +77,37 @@ describe("App", () => {
     );
   });
 
+  it("places a waiting update notice directly after planner navigation and delegates acceptance", async () => {
+    const user = userEvent.setup();
+    const refresh = vi.fn();
+    render(<App offlineState="updating" onRefresh={refresh} />);
+
+    const plannerNav = screen.getByRole("navigation", {
+      name: "Planner views",
+    });
+    expect(plannerNav.nextElementSibling).toHaveClass("update-notice");
+    expect(
+      screen.getByRole("button", { name: "Use update next time" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/close and reopen Field Notes to use the new version/i),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Use update next time" }),
+    );
+
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("does not show an update notice when no update is waiting", () => {
+    render(<App offlineState="ready" onRefresh={() => undefined} />);
+
+    expect(
+      screen.queryByRole("heading", { name: "A planner update is ready" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not claim offline readiness before the cache status is known", () => {
     render(<App />);
 

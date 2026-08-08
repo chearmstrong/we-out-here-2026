@@ -187,19 +187,15 @@ it.each(["getter", "setter"] as const)(
   },
 );
 
-it("leaves the cached planner running when the user allows an update", async () => {
-  const user = userEvent.setup();
-  const refresh = vi.fn();
-  render(<OfflineStatus state="updating" onRefresh={refresh} />);
+it("keeps lower offline status free of update actions while an update waits", () => {
+  render(<OfflineStatus state="updating" onRefresh={() => undefined} />);
 
-  expect(screen.getByText("A planner update is available")).toBeInTheDocument();
-  expect(screen.getByText(/open planner will not reload/i)).toBeInTheDocument();
-  expect(screen.getByText(/after every Field Notes tab or app window is closed/i)).toBeInTheDocument();
-  expect(refresh).not.toHaveBeenCalled();
-
-  await user.click(screen.getByRole("button", { name: "Allow update" }));
-
-  expect(refresh).toHaveBeenCalledOnce();
+  expect(
+    screen.queryByRole("button", { name: "Allow update" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Use update next time" }),
+  ).not.toBeInTheDocument();
 });
 
 it("keeps the current Schedule Snapshot date visible while an update waits", () => {

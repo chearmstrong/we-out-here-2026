@@ -36,6 +36,33 @@ it("keeps phone CSS on the same size-only schedule policy as React", () => {
   expect(plannerNavRule?.style.getPropertyValue("position")).toBe("sticky");
 });
 
+it("keeps phone day schedule rows compact and free of horizontal scrolling", () => {
+  const style = document.createElement("style");
+  style.dataset.testStyles = "true";
+  style.textContent = readFileSync(resolve("src/styles.css"), "utf8");
+  document.head.append(style);
+
+  const rules = [...(style.sheet?.cssRules ?? [])];
+  const scheduleRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".phone-day-schedule",
+  );
+  const rowRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".phone-day-schedule__row",
+  );
+
+  expect(scheduleRule?.style.getPropertyValue("min-width")).toBe("0");
+  expect(rowRule?.style.getPropertyValue("display")).toBe("grid");
+  expect(rowRule?.style.getPropertyValue("min-height")).toBe("2.75rem");
+  expect(rowRule?.style.getPropertyValue("grid-template-columns")).toContain(
+    "5.4rem",
+  );
+  expect(rowRule?.style.getPropertyValue("overflow-x")).toBe("");
+});
+
 it("keeps the open phone detail sheet bottom-aligned inside every safe-area edge", () => {
   const style = document.createElement("style");
   style.dataset.testStyles = "true";

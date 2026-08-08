@@ -18,6 +18,21 @@ const checkedDate = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC",
 }).format(new Date(`${SCHEDULE_LAST_CHECKED}T00:00:00Z`));
 
+export function UpdateNotice({ onRefresh }: { onRefresh: () => void }) {
+  return (
+    <section className="update-notice" aria-labelledby="update-notice-heading">
+      <h2 id="update-notice-heading">A planner update is ready</h2>
+      <p>
+        Your saved plan stays in this browser. Close and reopen Field Notes to
+        use the new version.
+      </p>
+      <button type="button" onClick={onRefresh}>
+        Use update next time
+      </button>
+    </section>
+  );
+}
+
 export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
   const [guidanceDismissed, setGuidanceDismissed] = useState(() => {
     try {
@@ -117,22 +132,6 @@ export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
       ) : null}
       {state === "offline-unavailable" ? (
         <p role="status">Connect once to save this planner offline.</p>
-      ) : null}
-      {state === "updating" ? (
-        <div>
-          <p role="status">A planner update is available</p>
-          <p>
-            This open planner will not reload. Allow the update, then close and
-            reopen Field Notes to use it.
-          </p>
-          <p>
-            If you leave it waiting, your browser may activate it after every
-            Field Notes tab or app window is closed.
-          </p>
-          <button type="button" onClick={onRefresh}>
-            Allow update
-          </button>
-        </div>
       ) : null}
       <p>Schedule checked {checkedDate}</p>
     </aside>

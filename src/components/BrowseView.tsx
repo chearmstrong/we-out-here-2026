@@ -1,4 +1,10 @@
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { FestivalEvent, ProgrammeDay } from "../domain/festival";
 import {
   compareByStartThenTitle,
@@ -160,97 +166,78 @@ function EventCardList({
   );
 }
 
-function PhoneAgenda({
+type PhoneDayScheduleProps = Pick<
+  EventCardListProps,
+  "events" | "favouriteIds" | "clashingIds" | "onViewDetails"
+> & {
+  programmeDay: ProgrammeDay;
+};
+
+function PhoneDaySchedule({
   events,
   favouriteIds,
   clashingIds,
-  onToggleFavourite,
   onViewDetails,
-}: EventCardListProps) {
-  const visibleDays = PROGRAMME_DAYS.filter((programmeDay) =>
-    events.some((event) => event.programmeDay === programmeDay),
-  );
+  programmeDay,
+}: PhoneDayScheduleProps) {
+  const dayEvents = events
+    .filter((event) => event.programmeDay === programmeDay)
+    .sort(compareByStartThenTitle);
 
   return (
-    <div className="phone-agenda">
-      {visibleDays.map((programmeDay) => {
-        const dayEvents = events
-          .filter((event) => event.programmeDay === programmeDay)
-          .sort(compareByStartThenTitle);
+    <section
+      aria-label={`${programmeDayLabel(programmeDay)} day schedule`}
+      className="phone-day-schedule"
+    >
+      <h3>{programmeDayLabel(programmeDay)}</h3>
+      {dayEvents.length === 0 ? (
+        <p className="phone-day-schedule__empty">
+          No matches for {programmeDayLabel(programmeDay)}.
+        </p>
+      ) : (
+        <div className="phone-day-schedule__rows">
+          {dayEvents.map((event) => {
+            const isFavourite = favouriteIds.has(event.id);
+            const isClashing = clashingIds.has(event.id);
+            const eventDescriptionId = `phone-schedule-event-${event.id}`;
+            const clashDescriptionId = `phone-schedule-clash-${event.id}`;
 
-        return (
-          <section
-            aria-label={`${programmeDayLabel(programmeDay)} agenda`}
-            className="phone-agenda__day"
-            key={programmeDay}
-          >
-            <h3>{programmeDayLabel(programmeDay)}</h3>
-            <div className="phone-agenda__events">
-              {dayEvents.map((event) => {
-                const isFavourite = favouriteIds.has(event.id);
-                const isClashing = clashingIds.has(event.id);
-                const clashDescriptionId = `agenda-clash-${event.id}`;
-
-                return (
-                  <article
-                    aria-label={`${event.title} agenda event`}
-                    className={`phone-agenda__event phone-agenda__event--${event.category}${isFavourite ? " phone-agenda__event--saved" : ""}${isClashing ? " phone-agenda__event--clashing" : ""}`}
-                    key={event.id}
-                  >
-                    <div className="phone-agenda__meta">
-                      <span className="phone-agenda__category">
-                        <CategoryIcon category={event.category} />
-                        <span>{categoryLabel(event.category)}</span>
-                      </span>
-                      <time dateTime={event.startsAt}>
-                        {formatTimeRange(event)}
-                      </time>
-                      <p>{event.venue}</p>
-                    </div>
-                    <strong>{event.title}</strong>
-                    <div className="phone-agenda__actions">
-                      <button
-                        className="phone-agenda__details"
-                        type="button"
-                        aria-label={`View ${event.title} details from agenda`}
-                        aria-describedby={
-                          isClashing ? clashDescriptionId : undefined
-                        }
-                        onClick={(clickEvent) =>
-                          onViewDetails(event.id, clickEvent.currentTarget)
-                        }
-                      >
-                        View details
-                      </button>
-                      <button
-                        className="phone-agenda__save"
-                        type="button"
-                        aria-pressed={isFavourite}
-                        aria-label={`${isFavourite ? "Remove" : "Save"} ${event.title} from agenda`}
-                        aria-describedby={
-                          isClashing ? clashDescriptionId : undefined
-                        }
-                        onClick={() => onToggleFavourite(event.id)}
-                      >
-                        <span aria-hidden="true">{isFavourite ? "−" : "+"}</span>
-                      </button>
-                    </div>
-                    {isClashing ? (
-                      <span
-                        className="visually-hidden"
-                        id={clashDescriptionId}
-                      >
-                        Clashes with another saved event
-                      </span>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-    </div>
+            return (
+              <button
+                aria-label={`${event.title} day schedule event`}
+                aria-describedby={`${eventDescriptionId}${isClashing ? ` ${clashDescriptionId}` : ""}`}
+                className={`phone-day-schedule__row${isFavourite ? " phone-day-schedule__row--saved" : ""}${isClashing ? " phone-day-schedule__row--clashing" : ""}`}
+                key={event.id}
+                onClick={(clickEvent) =>
+                  onViewDetails(event.id, clickEvent.currentTarget)
+                }
+                type="button"
+              >
+                <time dateTime={event.startsAt}>{formatTimeRange(event)}</time>
+                <span className="phone-day-schedule__category">
+                  <CategoryIcon category={event.category} />
+                  {categoryLabel(event.category)}
+                </span>
+                <strong>{event.title}</strong>
+                <span className="phone-day-schedule__venue">{event.venue}</span>
+                {isFavourite ? (
+                  <span className="phone-day-schedule__saved">Saved</span>
+                ) : null}
+                <span className="visually-hidden" id={eventDescriptionId}>
+                  {formatTimeRange(event)}, {event.venue},{" "}
+                  {categoryLabel(event.category)}, {isFavourite ? "Saved" : "Not saved"}
+                </span>
+                {isClashing ? (
+                  <span className="visually-hidden" id={clashDescriptionId}>
+                    Clashes with another saved event
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -448,6 +435,20 @@ export function BrowseView({
   const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
   const viewToggleRef = useRef<HTMLButtonElement | null>(null);
 
+  useEffect(() => {
+    if (
+      isPhoneLayout &&
+      mode === "timetable" &&
+      filters.programmeDay === "all"
+    ) {
+      setFilters((currentFilters) =>
+        currentFilters.programmeDay === "all"
+          ? { ...currentFilters, programmeDay: "thursday" }
+          : currentFilters,
+      );
+    }
+  }, [filters.programmeDay, isPhoneLayout, mode]);
+
   const venues = useMemo(
     () =>
       [...new Set(events.map((event) => event.venue))].sort((left, right) =>
@@ -469,6 +470,8 @@ export function BrowseView({
   const selectedEvent = selectedEventId
     ? events.find((event) => event.id === selectedEventId)
     : undefined;
+  const phoneProgrammeDay =
+    filters.programmeDay === "all" ? "thursday" : filters.programmeDay;
 
   const openDetails = (eventId: string, opener: HTMLButtonElement) => {
     detailsOpenerRef.current = opener;
@@ -497,17 +500,29 @@ export function BrowseView({
             ref={viewToggleRef}
             type="button"
             aria-pressed={mode === "timetable"}
-            onClick={() =>
+            onClick={() => {
+              if (
+                mode === "list" &&
+                isPhoneLayout &&
+                filters.programmeDay === "all"
+              ) {
+                setFilters((currentFilters) => ({
+                  ...currentFilters,
+                  programmeDay: "thursday",
+                }));
+              }
               setMode((currentMode) =>
                 currentMode === "list" ? "timetable" : "list",
-              )
-            }
+              );
+            }}
           >
             {mode === "list"
               ? isPhoneLayout
                 ? "Show schedule"
                 : "Show timetable"
-              : "Show list"}
+              : isPhoneLayout
+                ? "Show browse"
+                : "Show list"}
           </button>
         </header>
 
@@ -526,7 +541,13 @@ export function BrowseView({
         ) : mode === "list" ? (
           <EventCardList {...cardListProps} />
         ) : isPhoneLayout ? (
-          <PhoneAgenda {...cardListProps} />
+          <PhoneDaySchedule
+            events={visibleEvents}
+            favouriteIds={favouriteIds}
+            clashingIds={clashingIds}
+            programmeDay={phoneProgrammeDay}
+            onViewDetails={openDetails}
+          />
         ) : (
           <Timetable {...cardListProps} />
         )}
