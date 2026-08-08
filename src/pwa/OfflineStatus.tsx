@@ -90,7 +90,12 @@ export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
         >
           <h2 id="home-screen-guidance-heading">Keep Field Notes handy</h2>
           <p>
-            Add this planner to your Home Screen for optional one-tap access.
+            For optional one-tap access, add Field Notes to your Home Screen
+            before you build your plan there.
+          </p>
+          <p>
+            <strong>iPhone/iPad:</strong> Home Screen apps keep a separate plan from
+            Safari. Plans saved in Safari will not appear there.
           </p>
           <div className="home-screen-guidance__actions">
             <button

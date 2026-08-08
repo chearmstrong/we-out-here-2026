@@ -6,7 +6,7 @@ Field Notes is an offline-capable, local-first personal festival planner for the
 
 Open the planner online once and wait for **Saved for offline use** before relying on it without a connection. A browser cannot show Field Notes on a first-ever offline visit because it has not downloaded the page or service worker yet. Clearing site data, using private browsing, or browser storage restrictions can remove or prevent browser storage of the plan and Event Notes.
 
-After **Saved for offline use** appears, the optional Home Screen guidance can make Field Notes quicker to launch. Browser menu labels and available Home Screen options vary.
+After **Saved for offline use** appears, optional Home Screen guidance can make Field Notes quicker to launch. On iPhone and iPad, add it before building a plan there: the Home Screen app keeps a separate plan from Safari, so an existing Safari plan will not appear in it. Browser menu labels and available Home Screen options vary.
 
 Browse the programme with search and day, venue, and category filters, then save events to **My plan**. On a phone, **Day schedule** is a compact, selected-day view for what is on now and next during the festival, with an optional **Saved only** view; the visual time-and-venue timetable is available on larger screens. Each saved event can have one Event Note of up to 140 characters. Notes and selections stay on that browser and device; there is no cross-device sync.
 

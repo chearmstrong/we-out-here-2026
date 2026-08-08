@@ -51,6 +51,18 @@ it("confirms that the planner is available offline after caching", () => {
     screen.getByRole("heading", { name: "Keep Field Notes handy" }),
   ).toBeInTheDocument();
   expect(
+    screen.getByText(
+      "For optional one-tap access, add Field Notes to your Home Screen before you build your plan there.",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      (_, element) =>
+        element?.textContent ===
+        "iPhone/iPad: Home Screen apps keep a separate plan from Safari. Plans saved in Safari will not appear there.",
+    ),
+  ).toBeInTheDocument();
+  expect(
     screen.getByRole("button", { name: "How to add it" }),
   ).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Not now" })).toBeInTheDocument();
@@ -64,17 +76,25 @@ it("does not claim offline use is ready before caching succeeds", () => {
   expect(
     screen.queryByRole("heading", { name: "Keep Field Notes handy" }),
   ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(
+      (_, element) =>
+        element?.textContent ===
+        "iPhone/iPad: Home Screen apps keep a separate plan from Safari. Plans saved in Safari will not appear there.",
+    ),
+  ).not.toBeInTheDocument();
 });
 
 it("reveals platform-specific Home Screen instructions on request", async () => {
   const user = userEvent.setup();
   render(<OfflineStatus state="ready" onRefresh={() => undefined} />);
 
-  expect(screen.queryByText(/iPhone\/iPad:/)).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(/open Share, then choose Add to Home Screen\./),
+  ).not.toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "How to add it" }));
 
-  expect(screen.getByText(/iPhone\/iPad:/)).toBeInTheDocument();
   expect(
     screen.getByText(/open Share, then choose Add to Home Screen\./),
   ).toBeInTheDocument();
@@ -102,7 +122,16 @@ it("dismisses Home Screen guidance persistently and lets help reopen it", async 
   expect(
     screen.getByRole("heading", { name: "Keep Field Notes handy" }),
   ).toBeInTheDocument();
-  expect(screen.getByText(/iPhone\/iPad:/)).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      (_, element) =>
+        element?.textContent ===
+        "iPhone/iPad: Home Screen apps keep a separate plan from Safari. Plans saved in Safari will not appear there.",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/open Share, then choose Add to Home Screen\./),
+  ).toBeInTheDocument();
   expect(screen.getByText(/Android:/)).toBeInTheDocument();
 });
 
