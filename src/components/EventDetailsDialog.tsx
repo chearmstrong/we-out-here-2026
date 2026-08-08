@@ -18,6 +18,7 @@ export type EventDetailsDialogProps = {
   onToggleFavourite: (eventId: string) => void;
   onSaveNote?: (eventId: string, note: string) => void;
   returnFocusTo?: HTMLElement | null;
+  fallbackFocusTo?: HTMLElement | null;
 };
 
 type IsolatedElementState = {
@@ -66,6 +67,7 @@ export function EventDetailsDialog({
   onToggleFavourite,
   onSaveNote,
   returnFocusTo,
+  fallbackFocusTo,
 }: EventDetailsDialogProps) {
   const titleId = useId();
   const noteHelpId = useId();
@@ -80,6 +82,9 @@ export function EventDetailsDialog({
       ? document.activeElement
       : null;
   });
+  const [fallbackFocusTarget] = useState<HTMLElement | null>(
+    () => fallbackFocusTo ?? null,
+  );
   const [draftNote, setDraftNote] = useState(note.slice(0, MAX_NOTE_LENGTH));
 
   useEffect(() => {
@@ -112,10 +117,12 @@ export function EventDetailsDialog({
         restoreFocusFrameRef.current = null;
         if (returnFocusTarget?.isConnected) {
           returnFocusTarget.focus();
+        } else if (fallbackFocusTarget?.isConnected) {
+          fallbackFocusTarget.focus();
         }
       });
     };
-  }, [returnFocusTarget]);
+  }, [fallbackFocusTarget, returnFocusTarget]);
 
   useEffect(() => {
     setDraftNote(note.slice(0, MAX_NOTE_LENGTH));

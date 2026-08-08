@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
 import {
+  filterBrowseEvents,
   filterEvents,
   getClashingEventIds,
   getCurrentAndNext,
   getCurrentProgrammeDay,
+  getDefaultBrowseProgrammeDay,
   getNextProgrammeDay,
 } from "./itinerary";
 
@@ -25,6 +27,51 @@ const events = [
   event({ id: "one", title: "Alpha" }),
   event({ id: "three", title: "Gamma", startsAt: "2026-08-21T21:00:00+01:00", endsAt: "2026-08-21T22:00:00+01:00" }),
 ] as const;
+
+const fridayLeafPrinting = event({
+  id: "friday:woodland-workshop:leaf-printing",
+  title: "Leaf Printing",
+  programmeDay: "friday",
+  venue: "Woodland Workshop",
+  startsAt: "2026-08-21T10:00:00+01:00",
+  endsAt: "2026-08-21T11:00:00+01:00",
+  category: "family",
+  source: "wider-programme",
+});
+
+describe("getDefaultBrowseProgrammeDay", () => {
+  it.each([
+    ["before the festival", "2026-08-19T23:00:00+01:00", "thursday"],
+    ["during Friday", "2026-08-21T10:00:00+01:00", "friday"],
+    ["after the festival", "2026-08-24T00:00:00+01:00", "all"],
+  ] as const)("uses the London Programme Day %s", (_, at, expectedDay) => {
+    expect(getDefaultBrowseProgrammeDay(new Date(at))).toBe(expectedDay);
+  });
+});
+
+describe("filterBrowseEvents", () => {
+  it("searches the whole weekend despite a selected Programme Day", () => {
+    expect(
+      filterBrowseEvents([events[0], fridayLeafPrinting], {
+        query: "Leaf",
+        programmeDay: "thursday",
+        venue: "all",
+        category: "all",
+      }),
+    ).toEqual([fridayLeafPrinting]);
+  });
+
+  it("keeps venue and category filters active during a global search", () => {
+    expect(
+      filterBrowseEvents([events[0], fridayLeafPrinting], {
+        query: "Leaf",
+        programmeDay: "thursday",
+        venue: "Main Stage",
+        category: "all",
+      }),
+    ).toEqual([]);
+  });
+});
 
 describe("filterEvents", () => {
   it("matches a trimmed case-insensitive title query", () => {

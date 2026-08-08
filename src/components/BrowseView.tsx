@@ -1,8 +1,10 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { FestivalEvent, ProgrammeDay } from "../domain/festival";
 import {
-  filterEvents,
+  compareByStartThenTitle,
+  filterBrowseEvents,
   getClashingEventIds,
+  getDefaultBrowseProgrammeDay,
   type BrowseFilters,
 } from "../planner/itinerary";
 import {
@@ -15,9 +17,8 @@ import {
 import { EventDetailsDialog } from "./EventDetailsDialog";
 import { Filters } from "./Filters";
 
-const INITIAL_FILTERS: BrowseFilters = {
+const INITIAL_FILTERS: Omit<BrowseFilters, "programmeDay"> = {
   query: "",
-  programmeDay: "all",
   venue: "all",
   category: "all",
 };
@@ -43,6 +44,7 @@ type EventCardListProps = {
   events: readonly FestivalEvent[];
   favouriteIds: ReadonlySet<string>;
   clashingIds: ReadonlySet<string>;
+  showProgrammeDay: boolean;
   onToggleFavourite: (eventId: string) => void;
   onViewDetails: (eventId: string, opener: HTMLButtonElement) => void;
 };
@@ -50,12 +52,42 @@ type EventCardListProps = {
 const TIMETABLE_PIXELS_PER_MINUTE = 2;
 const TIMETABLE_LANE_HEIGHT = 120;
 const TIMETABLE_MINIMUM_TARGET_SIZE = 44;
+const PHONE_LAYOUT_QUERY = "(max-width: 42rem)";
 const hourFormatter = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
   timeZone: "Europe/London",
 });
+
+function getPhoneLayoutSnapshot() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia(PHONE_LAYOUT_QUERY).matches
+  );
+}
+
+function subscribeToPhoneLayout(onStoreChange: () => void) {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return () => undefined;
+  }
+
+  const mediaQuery = window.matchMedia(PHONE_LAYOUT_QUERY);
+  mediaQuery.addEventListener("change", onStoreChange);
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function usePhoneLayout() {
+  return useSyncExternalStore(
+    subscribeToPhoneLayout,
+    getPhoneLayoutSnapshot,
+    () => false,
+  );
+}
 
 type PositionedEvent = {
   event: FestivalEvent;
@@ -106,6 +138,7 @@ function EventCardList({
   events,
   favouriteIds,
   clashingIds,
+  showProgrammeDay,
   onToggleFavourite,
   onViewDetails,
 }: EventCardListProps) {
@@ -117,10 +150,105 @@ function EventCardList({
           event={event}
           isFavourite={favouriteIds.has(event.id)}
           isClashing={clashingIds.has(event.id)}
+          showProgrammeDay={showProgrammeDay}
           onToggleFavourite={onToggleFavourite}
           onViewDetails={(opener) => onViewDetails(event.id, opener)}
         />
       ))}
+    </div>
+  );
+}
+
+function PhoneAgenda({
+  events,
+  favouriteIds,
+  clashingIds,
+  onToggleFavourite,
+  onViewDetails,
+}: EventCardListProps) {
+  const visibleDays = PROGRAMME_DAYS.filter((programmeDay) =>
+    events.some((event) => event.programmeDay === programmeDay),
+  );
+
+  return (
+    <div className="phone-agenda">
+      {visibleDays.map((programmeDay) => {
+        const dayEvents = events
+          .filter((event) => event.programmeDay === programmeDay)
+          .sort(compareByStartThenTitle);
+
+        return (
+          <section
+            aria-label={`${programmeDayLabel(programmeDay)} agenda`}
+            className="phone-agenda__day"
+            key={programmeDay}
+          >
+            <h3>{programmeDayLabel(programmeDay)}</h3>
+            <div className="phone-agenda__events">
+              {dayEvents.map((event) => {
+                const isFavourite = favouriteIds.has(event.id);
+                const isClashing = clashingIds.has(event.id);
+                const clashDescriptionId = `agenda-clash-${event.id}`;
+
+                return (
+                  <article
+                    aria-label={`${event.title} agenda event`}
+                    className={`phone-agenda__event phone-agenda__event--${event.category}${isFavourite ? " phone-agenda__event--saved" : ""}${isClashing ? " phone-agenda__event--clashing" : ""}`}
+                    key={event.id}
+                  >
+                    <div className="phone-agenda__meta">
+                      <span className="phone-agenda__category">
+                        <CategoryIcon category={event.category} />
+                        <span>{categoryLabel(event.category)}</span>
+                      </span>
+                      <time dateTime={event.startsAt}>
+                        {formatTimeRange(event)}
+                      </time>
+                      <p>{event.venue}</p>
+                    </div>
+                    <strong>{event.title}</strong>
+                    <div className="phone-agenda__actions">
+                      <button
+                        className="phone-agenda__details"
+                        type="button"
+                        aria-label={`View ${event.title} details from agenda`}
+                        aria-describedby={
+                          isClashing ? clashDescriptionId : undefined
+                        }
+                        onClick={(clickEvent) =>
+                          onViewDetails(event.id, clickEvent.currentTarget)
+                        }
+                      >
+                        View details
+                      </button>
+                      <button
+                        className="phone-agenda__save"
+                        type="button"
+                        aria-pressed={isFavourite}
+                        aria-label={`${isFavourite ? "Remove" : "Save"} ${event.title} from agenda`}
+                        aria-describedby={
+                          isClashing ? clashDescriptionId : undefined
+                        }
+                        onClick={() => onToggleFavourite(event.id)}
+                      >
+                        <span aria-hidden="true">{isFavourite ? "−" : "+"}</span>
+                      </button>
+                    </div>
+                    {isClashing ? (
+                      <span
+                        className="visually-hidden"
+                        id={clashDescriptionId}
+                      >
+                        Clashes with another saved event
+                      </span>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -309,10 +437,15 @@ export function BrowseView({
   onToggleFavourite,
   onSaveNote,
 }: BrowseViewProps) {
-  const [filters, setFilters] = useState<BrowseFilters>(INITIAL_FILTERS);
+  const [filters, setFilters] = useState<BrowseFilters>(() => ({
+    ...INITIAL_FILTERS,
+    programmeDay: getDefaultBrowseProgrammeDay(new Date()),
+  }));
   const [mode, setMode] = useState<BrowseMode>("list");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const isPhoneLayout = usePhoneLayout();
   const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
+  const viewToggleRef = useRef<HTMLButtonElement | null>(null);
 
   const venues = useMemo(
     () =>
@@ -322,7 +455,7 @@ export function BrowseView({
     [events],
   );
   const visibleEvents = useMemo(
-    () => filterEvents(events, filters),
+    () => filterBrowseEvents(events, filters),
     [events, filters],
   );
   const clashingIds = useMemo(
@@ -345,6 +478,7 @@ export function BrowseView({
     events: visibleEvents,
     favouriteIds,
     clashingIds,
+    showProgrammeDay: filters.query.trim().length > 0,
     onToggleFavourite,
     onViewDetails: openDetails,
   };
@@ -359,6 +493,7 @@ export function BrowseView({
           </div>
           <button
             className="view-toggle"
+            ref={viewToggleRef}
             type="button"
             aria-pressed={mode === "timetable"}
             onClick={() =>
@@ -385,6 +520,8 @@ export function BrowseView({
           </div>
         ) : mode === "list" ? (
           <EventCardList {...cardListProps} />
+        ) : isPhoneLayout ? (
+          <PhoneAgenda {...cardListProps} />
         ) : (
           <Timetable {...cardListProps} />
         )}
@@ -400,6 +537,7 @@ export function BrowseView({
           onToggleFavourite={onToggleFavourite}
           onSaveNote={onSaveNote}
           returnFocusTo={detailsOpenerRef.current}
+          fallbackFocusTo={viewToggleRef.current}
         />
       ) : null}
     </section>

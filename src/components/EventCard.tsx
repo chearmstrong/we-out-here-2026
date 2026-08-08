@@ -115,6 +115,7 @@ export type EventCardProps = {
   event: FestivalEvent;
   isFavourite: boolean;
   isClashing: boolean;
+  showProgrammeDay?: boolean;
   onToggleFavourite: (eventId: string) => void;
   onViewDetails?: (opener: HTMLButtonElement) => void;
 };
@@ -123,6 +124,7 @@ export function EventCard({
   event,
   isFavourite,
   isClashing,
+  showProgrammeDay = false,
   onToggleFavourite,
   onViewDetails,
 }: EventCardProps) {
@@ -140,6 +142,12 @@ export function EventCard({
         <time dateTime={event.startsAt}>{formatTimeRange(event)}</time>
         <span aria-hidden="true"> · </span>
         <span>{event.venue}</span>
+        {showProgrammeDay ? (
+          <>
+            <span aria-hidden="true"> · </span>
+            <span>{programmeDayLabel(event.programmeDay)}</span>
+          </>
+        ) : null}
       </p>
       {isClashing ? (
         <p className="clash-note" role="status">

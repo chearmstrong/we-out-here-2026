@@ -12,6 +12,20 @@ export type BrowseFilters = {
   category: EventCategory | "all";
 };
 
+const londonDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/London",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const festivalProgrammeDays: Record<string, ProgrammeDay> = {
+  "2026-08-20": "thursday",
+  "2026-08-21": "friday",
+  "2026-08-22": "saturday",
+  "2026-08-23": "sunday",
+};
+
 export const compareByStartThenTitle = (
   left: FestivalEvent,
   right: FestivalEvent,
@@ -24,23 +38,38 @@ const chronologically = (
   events: readonly FestivalEvent[],
 ): FestivalEvent[] => [...events].sort(compareByStartThenTitle);
 
-export function filterEvents(
+export function getDefaultBrowseProgrammeDay(
+  at: Date,
+): ProgrammeDay | "all" {
+  const londonDate = londonDateFormatter.format(at);
+
+  if (londonDate < "2026-08-20") return "thursday";
+  if (londonDate > "2026-08-23") return "all";
+
+  return festivalProgrammeDays[londonDate]!;
+}
+
+export function filterBrowseEvents(
   events: readonly FestivalEvent[],
   filters: BrowseFilters,
 ): FestivalEvent[] {
   const query = filters.query.trim().toLocaleLowerCase();
+  const hasQuery = query.length > 0;
 
   return events
     .filter(
       (event) =>
-        (!query || event.title.toLocaleLowerCase().includes(query)) &&
-        (filters.programmeDay === "all" ||
+        (!hasQuery || event.title.toLocaleLowerCase().includes(query)) &&
+        (hasQuery ||
+          filters.programmeDay === "all" ||
           event.programmeDay === filters.programmeDay) &&
         (filters.venue === "all" || event.venue === filters.venue) &&
         (filters.category === "all" || event.category === filters.category),
     )
     .sort(compareByStartThenTitle);
 }
+
+export const filterEvents = filterBrowseEvents;
 
 export function getClashingEventIds(
   events: readonly FestivalEvent[],
