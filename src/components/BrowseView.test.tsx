@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
-import { BrowseView } from "./BrowseView";
+import { BrowseView, PHONE_LAYOUT_QUERY } from "./BrowseView";
 
 const events: FestivalEvent[] = [
   {
@@ -32,7 +32,7 @@ function mockPhoneLayout(initialMatches: boolean) {
   const listeners = new Set<EventListener>();
   const mediaQueryList = {
     matches: initialMatches,
-    media: "(max-width: 42rem)",
+    media: PHONE_LAYOUT_QUERY,
     onchange: null,
     addEventListener: (_type: string, listener: EventListener) => {
       listeners.add(listener);
@@ -127,7 +127,8 @@ describe("BrowseView", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("starts chronologically and offers list and timetable modes", async () => {
+  it("shows the timetable exclusively when desktop layout opens the timetable", async () => {
+    mockPhoneLayout(false);
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-19T23:00:00+01:00"));
 
@@ -152,6 +153,32 @@ describe("BrowseView", () => {
     expect(
       within(timetable).getByRole("heading", { name: "Main Stage" }),
     ).toBeVisible();
+    expect(
+      screen.queryByRole("region", { name: "Thursday agenda" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show list" })).toBeVisible();
+  });
+
+  it("shows the agenda exclusively when phone layout opens the schedule", async () => {
+    mockPhoneLayout(true);
+    const user = userEvent.setup();
+
+    render(
+      <BrowseView
+        events={[events[0]]}
+        favouriteIds={new Set()}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
+
+    expect(
+      screen.getByRole("region", { name: "Thursday agenda" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByLabelText("Programme timetable"),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Show list" })).toBeVisible();
   });
 
@@ -230,7 +257,7 @@ describe("BrowseView", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Show timetable" }));
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
 
     const agenda = screen.getByRole("region", { name: "Thursday agenda" });
     expect(agenda).toHaveTextContent("Short Event");
@@ -266,7 +293,7 @@ describe("BrowseView", () => {
     );
 
     await user.selectOptions(screen.getByLabelText("Programme Day"), "all");
-    await user.click(screen.getByRole("button", { name: "Show timetable" }));
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
 
     expect(
       screen.getByRole("region", { name: "Thursday agenda" }),
@@ -302,7 +329,7 @@ describe("BrowseView", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Show timetable" }));
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
 
     const agendaEvents = within(
       screen.getByRole("region", { name: "Thursday agenda" }),
@@ -335,7 +362,7 @@ describe("BrowseView", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Show timetable" }));
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
 
     for (const title of ["Kotoa", "Overlapping Agenda Set"]) {
       expect(
@@ -392,7 +419,11 @@ describe("BrowseView", () => {
         />,
       );
 
-      await user.click(screen.getByRole("button", { name: "Show timetable" }));
+      await user.click(
+        screen.getByRole("button", {
+          name: startsOnPhone ? "Show schedule" : "Show timetable",
+        }),
+      );
       const fallback = screen.getByRole("button", { name: "Show list" });
       const opener = screen.getByRole("button", { name: openerName });
       await user.click(opener);

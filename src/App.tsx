@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { Github } from "lucide-react";
 import { downloadCalendar } from "./calendar/ics";
 import { BrowseView } from "./components/BrowseView";
 import { PlanView } from "./components/PlanView";
 import {
+  FESTIVAL_PLAYLIST_URL,
   OFFICIAL_SET_TIMES_URL,
   PROJECT_README_URL,
   PROJECT_REPOSITORY_URL,
@@ -164,11 +166,28 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
+        <a
+          className="header-source-link"
+          href={PROJECT_REPOSITORY_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="View source on GitHub"
+        >
+          <Github aria-hidden="true" />
+        </a>
         <p className="app-header__kicker">WE OUT HERE · 20–23 AUG 2026</p>
         <h1>Field Notes</h1>
         <p className="app-header__intro">
           A private, local-first place for your festival weekend.
         </p>
+        <a
+          className="header-playlist-link"
+          href={FESTIVAL_PLAYLIST_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Listen to the festival playlist
+        </a>
       </header>
       <nav className="planner-nav" aria-label="Planner views">
         <button

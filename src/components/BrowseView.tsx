@@ -52,7 +52,8 @@ type EventCardListProps = {
 const TIMETABLE_PIXELS_PER_MINUTE = 2;
 const TIMETABLE_LANE_HEIGHT = 120;
 const TIMETABLE_MINIMUM_TARGET_SIZE = 44;
-const PHONE_LAYOUT_QUERY = "(max-width: 42rem)";
+export const PHONE_LAYOUT_QUERY =
+  "(max-width: 42rem), (pointer: coarse) and (orientation: landscape) and (max-height: 32rem)";
 const hourFormatter = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",
@@ -502,7 +503,11 @@ export function BrowseView({
               )
             }
           >
-            {mode === "list" ? "Show timetable" : "Show list"}
+            {mode === "list"
+              ? isPhoneLayout
+                ? "Show schedule"
+                : "Show timetable"
+              : "Show list"}
           </button>
         </header>
 

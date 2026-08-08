@@ -6,6 +6,8 @@ Field Notes is an offline-capable, local-first personal festival planner for the
 
 Open the planner online once and wait for **Saved for offline use** before relying on it without a connection. A browser cannot show Field Notes on a first-ever offline visit because it has not downloaded the page or service worker yet. Clearing site data, using private browsing, or browser storage restrictions can remove or prevent browser storage of the plan and Event Notes.
 
+After **Saved for offline use** appears, the optional Home Screen guidance can make Field Notes quicker to launch. Browser menu labels and available Home Screen options vary.
+
 Browse the programme with search and day, venue, and category filters, then save events to **My plan**. Each saved event can have one Event Note of up to 140 characters. Notes and selections stay on that browser and device; there is no cross-device sync.
 
 **Download calendar** exports the saved itinerary as `we-out-here-2026-plan.ics`. Event Notes are included as descriptions and the file contains no automatic alarms. The calendar application importing it may apply its own notification defaults, which Field Notes cannot control.
@@ -43,8 +45,12 @@ Festival content is committed locally; the production app never scrapes or fetch
 
 ## Resources and attribution
 
-For the full product guide, see [How Field Notes works](https://github.com/chearmstrong/we-out-here-2026#readme), or [view the source on GitHub](https://github.com/chearmstrong/we-out-here-2026). The official [We Out Here set times](https://weoutherefestival.com/set-times/) are an external reference; Field Notes does not retrieve or reproduce them at runtime.
+For the full product guide, see [How Field Notes works](https://github.com/chearmstrong/we-out-here-2026#readme), or [view the source on GitHub](https://github.com/chearmstrong/we-out-here-2026). The official [We Out Here set times](https://weoutherefestival.com/set-times/) are an external reference; Field Notes does not retrieve or reproduce them at runtime. The [festival playlist](https://open.spotify.com/playlist/7Am6bwWRhhwy4yjcMo3ASA) is an optional browser link and is never embedded or fetched at runtime.
 
 ## Identity and attribution
 
 Field Notes is an original, unofficial personal planner and is not affiliated with or endorsed by We Out Here Festival. It may use factual public programme metadata and broad festival-adjacent atmosphere, but must not use or recreate the festival's logo, wordmark, illustrations, photography, or distinctive display type. Product names, copy, layouts, icons, and other visual assets must remain original, using only licensed or system fonts.
+
+## Licence
+
+MIT covers original Field Notes code and documentation only. It does not cover We Out Here or Spotify names, marks, logos, illustrations, official map artwork, or external content.

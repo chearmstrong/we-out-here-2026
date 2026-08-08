@@ -1,8 +1,9 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import {
+  FESTIVAL_PLAYLIST_URL,
   OFFICIAL_SET_TIMES_URL,
   PROJECT_README_URL,
   PROJECT_REPOSITORY_URL,
@@ -84,6 +85,29 @@ describe("App", () => {
       .closest("header");
     expect(appHeader).not.toBeNull();
     expect(appHeader).not.toHaveTextContent(/offline-ready/i);
+  });
+
+  it("provides safe optional exits to the source and festival playlist from the header", () => {
+    render(<App />);
+
+    const header = screen
+      .getByRole("heading", { name: "Field Notes" })
+      .closest("header");
+    expect(header).not.toBeNull();
+
+    const sourceLink = within(header as HTMLElement).getByRole("link", {
+      name: "View source on GitHub",
+    });
+    expect(sourceLink).toHaveAttribute("href", PROJECT_REPOSITORY_URL);
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(sourceLink).toHaveAttribute("rel", "noreferrer");
+
+    const playlistLink = within(header as HTMLElement).getByRole("link", {
+      name: "Listen to the festival playlist",
+    });
+    expect(playlistLink).toHaveAttribute("href", FESTIVAL_PLAYLIST_URL);
+    expect(playlistLink).toHaveAttribute("target", "_blank");
+    expect(playlistLink).toHaveAttribute("rel", "noreferrer");
   });
 
   it("continues with an in-memory plan when localStorage access throws", () => {
@@ -357,16 +381,17 @@ describe("App", () => {
   it("provides safe new-tab links to its public resources", () => {
     render(<App />);
 
-    expect(screen.getByRole("contentinfo")).toHaveTextContent(
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent(
       /local-first planner using a verified programme snapshot/i,
     );
-    expect(screen.getByRole("link", { name: "How Field Notes works" }))
+    expect(within(footer).getByRole("link", { name: "How Field Notes works" }))
       .toHaveAttribute("href", PROJECT_README_URL);
-    expect(screen.getByRole("link", { name: "View source on GitHub" }))
+    expect(within(footer).getByRole("link", { name: "View source on GitHub" }))
       .toHaveAttribute("href", PROJECT_REPOSITORY_URL);
-    expect(screen.getByRole("link", { name: "Official set times" }))
+    expect(within(footer).getByRole("link", { name: "Official set times" }))
       .toHaveAttribute("href", OFFICIAL_SET_TIMES_URL);
-    for (const link of screen.getAllByRole("link")) {
+    for (const link of within(footer).getAllByRole("link")) {
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noreferrer");
     }

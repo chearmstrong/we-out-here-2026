@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
 import {
+  FESTIVAL_PLAYLIST_URL,
   OFFICIAL_SET_TIMES_URL,
   PAGES_BASE,
   PROJECT_README_URL,
@@ -20,6 +21,20 @@ it("publishes stable public resource destinations", () => {
   expect(OFFICIAL_SET_TIMES_URL).toBe(
     "https://weoutherefestival.com/set-times/",
   );
+  expect(FESTIVAL_PLAYLIST_URL).toBe(
+    "https://open.spotify.com/playlist/7Am6bwWRhhwy4yjcMo3ASA",
+  );
+});
+
+it("licenses the original project work under MIT terms", () => {
+  const packageJson = JSON.parse(
+    readFileSync(resolve("package.json"), "utf8"),
+  );
+  const license = readFileSync(resolve("LICENSE"), "utf8");
+
+  expect(packageJson.license).toBe("MIT");
+  expect(license).toContain("MIT License");
+  expect(license).toContain("Copyright (c) 2026 Ché Armstrong");
 });
 
 it("allows the app shell to use iPhone safe-area insets", () => {

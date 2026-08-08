@@ -77,6 +77,65 @@ main {
   padding-left: env(safe-area-inset-left);
 }
 
+.home-screen-guidance {
+  width: min(calc(100% - 2rem), 68rem);
+  margin: 0.75rem auto;
+  padding-top: 1rem;
+  padding-right: 1rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding-left: 1rem;
+  border: 0.125rem solid var(--ink);
+  border-radius: 0.9rem;
+  overflow-wrap: anywhere;
+  background: var(--paper-light);
+  box-shadow: 0.25rem 0.25rem 0 var(--sun);
+}
+
+.home-screen-guidance h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: -0.025em;
+}
+
+.home-screen-guidance p {
+  max-width: 62ch;
+  margin: 0.65rem 0 0;
+  line-height: 1.45;
+}
+
+.home-screen-guidance__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+}
+
+.home-screen-guidance__actions button,
+.home-screen-guidance__help {
+  min-height: 2.75rem;
+  border: 0.125rem solid var(--ink);
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  background: var(--paper-light);
+  font-weight: 850;
+}
+
+.home-screen-guidance__actions button:first-child {
+  color: var(--paper-light);
+  background: var(--forest);
+}
+
+.home-screen-guidance__actions button:hover,
+.home-screen-guidance__help:hover {
+  color: var(--ink);
+  background: var(--sun);
+}
+
+.home-screen-guidance__help {
+  display: block;
+  margin: 0.75rem auto;
+}
+
 .app-shell {
   display: grid;
   gap: clamp(1.25rem, 4vw, 2.5rem);
@@ -114,8 +173,35 @@ main {
   z-index: 1;
 }
 
+.header-source-link {
+  position: absolute;
+  z-index: 2;
+  top: clamp(0.75rem, 3vw, 1.25rem);
+  right: clamp(0.75rem, 3vw, 1.25rem);
+  display: grid;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  border: 0.125rem solid var(--paper-light);
+  border-radius: 999px;
+  color: var(--paper-light);
+  background: var(--forest);
+}
+
+.header-source-link:hover {
+  color: var(--ink);
+  background: var(--sun);
+}
+
+.header-source-link:focus-visible,
+.header-playlist-link:focus-visible {
+  outline: 0.2rem solid var(--sun);
+  outline-offset: 0.18rem;
+}
+
 .app-header__kicker {
   margin: 0;
+  padding-right: 3.25rem;
   color: var(--sun);
   font-size: 0.78rem;
   font-weight: 900;
@@ -137,6 +223,20 @@ main {
   color: #e5eadc;
   font-weight: 650;
   line-height: 1.45;
+}
+
+.header-playlist-link {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.75rem;
+  align-items: center;
+  color: var(--sun);
+  font-weight: 850;
+  text-underline-offset: 0.2em;
+}
+
+.header-playlist-link:hover {
+  color: var(--paper-light);
 }
 
 .planner-nav {
@@ -1171,7 +1271,8 @@ main {
   font-size: 0.9rem;
 }
 
-@media (max-width: 42rem) {
+@media (max-width: 42rem),
+  (pointer: coarse) and (orientation: landscape) and (max-height: 32rem) {
   .app-header::after {
     top: -4.5rem;
     right: -4.5rem;
