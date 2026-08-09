@@ -187,6 +187,112 @@ describe("BrowseView", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("toggles the Family programme shortcut without replacing the other Browse filters", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-21T09:00:00+01:00"));
+    const bookLoveFamily = {
+      id: "friday:booklove:book-at-bedtime-with-booklove",
+      title: "Book at Bedtime with BookLove",
+      programmeDay: "friday" as const,
+      venue: "booklove",
+      startsAt: "2026-08-21T10:00:00+01:00",
+      endsAt: "2026-08-21T10:30:00+01:00",
+      category: "family" as const,
+      source: "wider-programme" as const,
+    };
+    const familyProgrammeEvent = {
+      id: "friday:family-space:family-programme-storytime",
+      title: "Family Programme Storytime",
+      programmeDay: "friday" as const,
+      venue: "Family Space",
+      startsAt: "2026-08-21T11:00:00+01:00",
+      endsAt: "2026-08-21T11:30:00+01:00",
+      category: "family" as const,
+      source: "family-programme" as const,
+    };
+    const musicEvent = {
+      ...events[0],
+      id: "friday:main-stage:music-fixture",
+      title: "Music Fixture",
+      programmeDay: "friday" as const,
+      venue: "Family Space",
+      startsAt: "2026-08-21T12:00:00+01:00",
+      endsAt: "2026-08-21T12:30:00+01:00",
+    };
+
+    render(
+      <BrowseView
+        events={[bookLoveFamily, familyProgrammeEvent, musicEvent]}
+        favouriteIds={new Set()}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+    vi.useRealTimers();
+    const user = userEvent.setup();
+
+    for (const title of [
+      bookLoveFamily.title,
+      familyProgrammeEvent.title,
+      musicEvent.title,
+    ]) {
+      expect(screen.getByRole("article", { name: title })).toBeVisible();
+    }
+
+    const familyProgrammeFilter = screen.getByRole("button", {
+      name: "Family programme",
+    });
+    await user.click(familyProgrammeFilter);
+
+    expect(familyProgrammeFilter).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("article", { name: bookLoveFamily.title }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("article", { name: familyProgrammeEvent.title }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("article", { name: musicEvent.title }),
+    ).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Programme Day"), "friday");
+    await user.selectOptions(screen.getByLabelText("Venue"), "Family Space");
+
+    expect(
+      screen.getByRole("article", { name: familyProgrammeEvent.title }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("article", { name: bookLoveFamily.title }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("article", { name: musicEvent.title }),
+    ).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText("Search programme"),
+      "Family Programme Storytime",
+    );
+
+    expect(
+      screen.getByRole("article", { name: familyProgrammeEvent.title }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("article", { name: bookLoveFamily.title }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("article", { name: musicEvent.title }),
+    ).not.toBeInTheDocument();
+
+    await user.click(familyProgrammeFilter);
+
+    expect(familyProgrammeFilter).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByLabelText("Category")).toHaveValue("all");
+    expect(screen.getByLabelText("Programme Day")).toHaveValue("friday");
+    expect(screen.getByLabelText("Venue")).toHaveValue("Family Space");
+    expect(screen.getByLabelText("Search programme")).toHaveValue(
+      "Family Programme Storytime",
+    );
+  });
+
   it("shows the timetable exclusively when desktop layout opens the timetable", async () => {
     mockPhoneLayout(false);
     vi.useFakeTimers();

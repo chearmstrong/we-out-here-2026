@@ -1,6 +1,6 @@
 # Field Notes
 
-Field Notes is an offline-capable, local-first personal festival planner for the published We Out Here 2026 music and wider programmes. It bundles a manually verified Schedule Snapshot, stores one shared plan and its Event Notes only in the current browser, and has no account, backend, telemetry, remote persistence, or runtime content fetch.
+Field Notes is an offline-capable, local-first personal festival planner for the published We Out Here 2026 music, wider, and Family programmes. It bundles a manually verified Schedule Snapshot, stores one shared plan and its Event Notes only in the current browser, and has no account, backend, telemetry, remote persistence, or runtime content fetch.
 
 ## Use the planner
 

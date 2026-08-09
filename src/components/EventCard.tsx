@@ -142,6 +142,12 @@ export function EventCard({
         <time dateTime={event.startsAt}>{formatTimeRange(event)}</time>
         <span aria-hidden="true"> · </span>
         <span>{event.venue}</span>
+        {event.locationStatus === "check-on-site" ? (
+          <>
+            <span aria-hidden="true"> · </span>
+            <span>Location: check on site</span>
+          </>
+        ) : null}
         {showProgrammeDay ? (
           <>
             <span aria-hidden="true"> · </span>

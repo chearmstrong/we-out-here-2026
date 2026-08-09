@@ -39,6 +39,19 @@ export function Filters({ filters, venues, onChange }: FiltersProps) {
           onChange={updateFilter("query")}
         />
       </label>
+      <button
+        className="family-programme-filter"
+        type="button"
+        aria-pressed={filters.category === "family"}
+        onClick={() =>
+          onChange({
+            ...filters,
+            category: filters.category === "family" ? "all" : "family",
+          })
+        }
+      >
+        Family programme
+      </button>
       <div className="programme-filters__selects">
         <label>
           <span>Programme Day</span>

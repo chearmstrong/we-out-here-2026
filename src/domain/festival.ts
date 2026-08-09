@@ -7,8 +7,15 @@ export const EVENT_CATEGORIES = [
 ] as const;
 
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
-export type ProgrammeSource = "music-programme" | "wider-programme";
+export const PROGRAMME_SOURCES = [
+  "music-programme",
+  "wider-programme",
+  "family-programme",
+] as const;
+
+export type ProgrammeSource = (typeof PROGRAMME_SOURCES)[number];
 export type ProgrammeDay = "thursday" | "friday" | "saturday" | "sunday";
+export type EventLocationStatus = "check-on-site";
 
 export type FestivalEvent = {
   id: string;
@@ -19,4 +26,5 @@ export type FestivalEvent = {
   endsAt: string;
   category: EventCategory;
   source: ProgrammeSource;
+  locationStatus?: EventLocationStatus;
 };

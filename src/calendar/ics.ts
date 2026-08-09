@@ -52,6 +52,11 @@ export function createCalendar(
   ];
 
   for (const event of [...events].sort(compareByStartThenTitle)) {
+    const location =
+      event.locationStatus === "check-on-site"
+        ? `${event.venue} (check on site)`
+        : event.venue;
+
     lines.push(
       "BEGIN:VEVENT",
       `UID:${event.id}@field-notes.local`,
@@ -59,7 +64,7 @@ export function createCalendar(
       `DTSTART:${toIcsLocal(event.startsAt)}`,
       `DTEND:${toIcsLocal(event.endsAt)}`,
       `SUMMARY:${escapeIcs(event.title)}`,
-      `LOCATION:${escapeIcs(event.venue)}`,
+      `LOCATION:${escapeIcs(location)}`,
       `DESCRIPTION:${escapeIcs(notesByEventId[event.id] ?? "")}`,
       "END:VEVENT",
     );

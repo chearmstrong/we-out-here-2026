@@ -46,6 +46,21 @@ describe("createCalendar", () => {
     );
   });
 
+  it("qualifies an unconfirmed activity-area location in calendar exports", () => {
+    const ics = createCalendar([
+      event({
+        id: "family-area",
+        title: "Family activity",
+        venue: "Discover",
+        category: "family",
+        source: "family-programme",
+        locationStatus: "check-on-site",
+      }),
+    ]);
+
+    expect(ics).toContain("LOCATION:Discover (check on site)");
+  });
+
   it("keeps cross-midnight events on their UK local wall times", () => {
     const ics = createCalendar([
       event({

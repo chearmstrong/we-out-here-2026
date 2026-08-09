@@ -181,6 +181,12 @@ export function EventDetailsDialog({
             <dt>Where</dt>
             <dd>{event.venue}</dd>
           </div>
+          {event.locationStatus === "check-on-site" ? (
+            <div>
+              <dt>Location</dt>
+              <dd>Check on site</dd>
+            </div>
+          ) : null}
         </dl>
         {isClashing ? (
           <p className="clash-note" role="status">

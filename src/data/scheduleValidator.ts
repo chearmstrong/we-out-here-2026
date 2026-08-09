@@ -1,5 +1,6 @@
 import {
   EVENT_CATEGORIES,
+  PROGRAMME_SOURCES,
   type FestivalEvent,
   type ProgrammeDay,
 } from "../domain/festival";
@@ -11,6 +12,7 @@ const PROGRAMME_DAYS = new Set<ProgrammeDay>([
   "sunday",
 ]);
 const EVENT_CATEGORY_SET = new Set<string>(EVENT_CATEGORIES);
+const PROGRAMME_SOURCE_SET = new Set<string>(PROGRAMME_SOURCES);
 const ISO_TIMESTAMP =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 const EMPTY_SCHEDULE_CHANGES: ReadonlyMap<string, string> = new Map();
@@ -48,6 +50,17 @@ export function validateSchedule(
 
     if (!EVENT_CATEGORY_SET.has(event.category)) {
       errors.push(`Unknown event category: ${event.category}`);
+    }
+
+    if (!PROGRAMME_SOURCE_SET.has(event.source)) {
+      errors.push(`Unknown programme source: ${event.source}`);
+    }
+
+    if (
+      event.locationStatus !== undefined &&
+      event.locationStatus !== "check-on-site"
+    ) {
+      errors.push(`Unknown event location status: ${event.locationStatus}`);
     }
 
     if (!PROGRAMME_DAYS.has(event.programmeDay)) {

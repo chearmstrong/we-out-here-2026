@@ -36,6 +36,38 @@ it("keeps phone CSS on the same size-only schedule policy as React", () => {
   expect(plannerNavRule?.style.getPropertyValue("position")).toBe("sticky");
 });
 
+it("keeps the Family programme quick filter compact, accessible, and able to wrap", () => {
+  const style = document.createElement("style");
+  style.dataset.testStyles = "true";
+  style.textContent = readFileSync(resolve("src/styles.css"), "utf8");
+  document.head.append(style);
+
+  const rules = [...(style.sheet?.cssRules ?? [])];
+  const filterRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".family-programme-filter",
+  );
+  const selectedRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText ===
+        '.family-programme-filter[aria-pressed="true"]',
+  );
+  const focusRule = rules.find(
+    (rule): rule is CSSStyleRule =>
+      rule.type === CSS_STYLE_RULE &&
+      (rule as CSSStyleRule).selectorText === ".family-programme-filter:focus-visible",
+  );
+
+  expect(filterRule?.style.getPropertyValue("min-height")).toBe("2.75rem");
+  expect(filterRule?.style.getPropertyValue("width")).toBe("fit-content");
+  expect(filterRule?.style.getPropertyValue("max-width")).toBe("100%");
+  expect(filterRule?.style.getPropertyValue("white-space")).toBe("normal");
+  expect(selectedRule?.style.getPropertyValue("background")).not.toBe("");
+  expect(focusRule?.style.getPropertyValue("outline")).not.toBe("");
+});
+
 it("keeps phone day schedule rows compact and free of horizontal scrolling", () => {
   const style = document.createElement("style");
   style.dataset.testStyles = "true";

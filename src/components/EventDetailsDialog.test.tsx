@@ -15,6 +15,16 @@ const event: FestivalEvent = {
   source: "music-programme",
 };
 
+const familyAreaEvent: FestivalEvent = {
+  ...event,
+  id: "thursday:scorcha-skate-school:skateboarding-workshops",
+  title: "SKATEBOARDING WORKSHOPS",
+  venue: "Scorcha Skate School",
+  category: "family",
+  source: "family-programme",
+  locationStatus: "check-on-site",
+};
+
 describe("EventDetailsDialog", () => {
   it("shows full time, venue, category, and save state in event details", () => {
     render(
@@ -36,6 +46,38 @@ describe("EventDetailsDialog", () => {
       "aria-pressed",
       "true",
     );
+  });
+
+  it("shows the official Family venue and its check-on-site location status", () => {
+    render(
+      <EventDetailsDialog
+        event={familyAreaEvent}
+        isFavourite={false}
+        isClashing={false}
+        onClose={() => undefined}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: "SKATEBOARDING WORKSHOPS details",
+    });
+    expect(dialog).toHaveTextContent("WhereScorcha Skate School");
+    expect(dialog).toHaveTextContent("LocationCheck on site");
+  });
+
+  it("does not show a location status for an ordinary Music event", () => {
+    render(
+      <EventDetailsDialog
+        event={event}
+        isFavourite={false}
+        isClashing={false}
+        onClose={() => undefined}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    expect(screen.queryByText("Check on site")).not.toBeInTheDocument();
   });
 
   it("uses the London calendar date for an after-midnight event", () => {

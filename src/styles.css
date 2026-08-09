@@ -665,6 +665,35 @@ main {
   font-size: 1rem;
 }
 
+.family-programme-filter {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 2.75rem;
+  border: 0.125rem solid var(--paper-light);
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  overflow-wrap: anywhere;
+  color: var(--paper-light);
+  background: transparent;
+  font-weight: 800;
+  white-space: normal;
+}
+
+.family-programme-filter:hover {
+  color: var(--ink);
+  background: var(--sun);
+}
+
+.family-programme-filter[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--sun);
+}
+
+.family-programme-filter:focus-visible {
+  outline: 0.2rem solid var(--focus);
+  outline-offset: 0.18rem;
+}
+
 .programme-filters__selects {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

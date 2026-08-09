@@ -1,7 +1,8 @@
 import type { FestivalEvent } from "../domain/festival";
+import { familyProgramme } from "./familyProgramme";
 
-export const SCHEDULE_VERSION = "2026-08-07";
-export const SCHEDULE_LAST_CHECKED = "2026-08-07";
+export const SCHEDULE_VERSION = "2026-08-09";
+export const SCHEDULE_LAST_CHECKED = "2026-08-09";
 
 export const schedule: readonly FestivalEvent[] = [
   {"id":"thursday:main-stage:hvywght-and-the-outlook-orchestra","title":"HVYWGHT & THE OUTLOOK ORCHESTRA","programmeDay":"thursday","venue":"Main Stage","startsAt":"2026-08-20T21:20:00+01:00","endsAt":"2026-08-20T23:00:00+01:00","category":"music","source":"music-programme"},
@@ -420,7 +421,7 @@ export const schedule: readonly FestivalEvent[] = [
   {"id":"saturday:near-mint-record-store:jim-r","title":"jim-R","programmeDay":"saturday","venue":"Near Mint Record Store","startsAt":"2026-08-22T11:00:00+01:00","endsAt":"2026-08-22T12:00:00+01:00","category":"music","source":"music-programme"},
   {"id":"saturday:love-serve-bar:tintin","title":"TINTIN","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T15:30:00+01:00","endsAt":"2026-08-22T17:00:00+01:00","category":"music","source":"music-programme"},
   {"id":"saturday:love-serve-bar:will-rowe-b2b-dj-emma","title":"WILL ROWE B2B DJ EMMA","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T14:00:00+01:00","endsAt":"2026-08-22T15:30:00+01:00","category":"music","source":"music-programme"},
-  {"id":"saturday:love-serve-bar:big-fish-little-fish-family-rave","title":"Big Fish Little Fish [Family Rave]","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T12:00:00+01:00","endsAt":"2026-08-22T14:00:00+01:00","category":"music","source":"music-programme"},
+  {"id":"saturday:love-serve-bar:big-fish-little-fish-family-rave","title":"Big Fish Little Fish [Family Rave]","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T12:00:00+01:00","endsAt":"2026-08-22T14:00:00+01:00","category":"family","source":"music-programme"},
   {"id":"saturday:love-serve-bar:lize","title":"LIZE","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T21:30:00+01:00","endsAt":"2026-08-22T23:00:00+01:00","category":"music","source":"music-programme"},
   {"id":"saturday:love-serve-bar:faide-b2b-rej","title":"FAIDE B2B REJ","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T20:00:00+01:00","endsAt":"2026-08-22T21:30:00+01:00","category":"music","source":"music-programme"},
   {"id":"saturday:love-serve-bar:anonymous-funk-odyssey","title":"ANONYMOUS FUNK ODYSSEY","programmeDay":"saturday","venue":"Love-Serve Bar","startsAt":"2026-08-22T18:30:00+01:00","endsAt":"2026-08-22T20:00:00+01:00","category":"music","source":"music-programme"},
@@ -556,7 +557,7 @@ export const schedule: readonly FestivalEvent[] = [
   {"id":"sunday:love-serve-bar:tayo-and-frank-tope","title":"TAYO & FRANK TOPE","programmeDay":"sunday","venue":"Love-Serve Bar","startsAt":"2026-08-23T16:15:00+01:00","endsAt":"2026-08-23T18:30:00+01:00","category":"music","source":"music-programme"},
   {"id":"sunday:love-serve-bar:jaime-rosso","title":"JAIME ROSSO","programmeDay":"sunday","venue":"Love-Serve Bar","startsAt":"2026-08-23T15:00:00+01:00","endsAt":"2026-08-23T16:15:00+01:00","category":"music","source":"music-programme"},
   {"id":"sunday:love-serve-bar:jacana-people","title":"JACANA PEOPLE","programmeDay":"sunday","venue":"Love-Serve Bar","startsAt":"2026-08-23T14:00:00+01:00","endsAt":"2026-08-23T15:00:00+01:00","category":"music","source":"music-programme"},
-  {"id":"sunday:love-serve-bar:activate-dj-competition-final","title":"Activate [DJ Competition Final]","programmeDay":"sunday","venue":"Love-Serve Bar","startsAt":"2026-08-23T12:00:00+01:00","endsAt":"2026-08-23T14:00:00+01:00","category":"music","source":"music-programme"},
+  {"id":"sunday:love-serve-bar:activate-dj-competition-final","title":"DJ COMPETITION FINAL WITH ACTIVATE PERFORMING ARTS","programmeDay":"sunday","venue":"Love Serve Bar","startsAt":"2026-08-23T12:00:00+01:00","endsAt":"2026-08-23T14:00:00+01:00","category":"family","source":"music-programme"},
   {"id":"sunday:once-in-a-blue-moon:dj-cutterz","title":"DJ CUTTERZ","programmeDay":"sunday","venue":"Once In A Blue Moon","startsAt":"2026-08-23T23:00:00+01:00","endsAt":"2026-08-24T00:00:00+01:00","category":"music","source":"music-programme"},
   {"id":"sunday:once-in-a-blue-moon:pamoja-disco-club","title":"PAMOJA DISCO CLUB","programmeDay":"sunday","venue":"Once In A Blue Moon","startsAt":"2026-08-23T22:00:00+01:00","endsAt":"2026-08-23T23:00:00+01:00","category":"music","source":"music-programme"},
   {"id":"sunday:once-in-a-blue-moon:love-sun-days","title":"LOVE SUN DAYS","programmeDay":"sunday","venue":"Once In A Blue Moon","startsAt":"2026-08-23T21:00:00+01:00","endsAt":"2026-08-23T22:00:00+01:00","category":"music","source":"music-programme"},
@@ -727,4 +728,5 @@ export const schedule: readonly FestivalEvent[] = [
   {"id":"sunday:the-knowledge:kankyo-ongaku-japanese-ambient-hour","title":"Kankyō Ongaku: Japanese Ambient Hour","programmeDay":"sunday","venue":"The Knowledge","startsAt":"2026-08-23T11:00:00+01:00","endsAt":"2026-08-23T12:00:00+01:00","category":"other","source":"wider-programme"},
   {"id":"sunday:the-knowledge:how-to-make-a-catalogue-contemporary-with-cam-records-and-bodie-cameron","title":"How To Make A Catalogue Contemporary with Cam Records and Bodie Cameron","programmeDay":"sunday","venue":"The Knowledge","startsAt":"2026-08-23T12:00:00+01:00","endsAt":"2026-08-23T13:00:00+01:00","category":"talk","source":"wider-programme"},
   {"id":"sunday:the-knowledge:digit-music-interactive-live-production-workshop","title":"Digit Music: Interactive Live Production Workshop","programmeDay":"sunday","venue":"The Knowledge","startsAt":"2026-08-23T14:00:00+01:00","endsAt":"2026-08-23T15:00:00+01:00","category":"workshop","source":"wider-programme"},
+  ...familyProgramme,
 ];
