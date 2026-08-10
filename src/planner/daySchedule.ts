@@ -7,13 +7,26 @@ export type DayScheduleGroup = {
   events: FestivalEvent[];
 };
 
+export type DayScheduleProgrammeGroup = {
+  programmeDay: ProgrammeDay;
+  groups: readonly DayScheduleGroup[];
+};
+
 export type DayScheduleModel = {
   beforeFestival: boolean;
   currentEvents: FestivalEvent[];
   nextEvent?: FestivalEvent;
   earlierGroups: DayScheduleGroup[];
   visibleGroups: DayScheduleGroup[];
+  programmeGroups: readonly DayScheduleProgrammeGroup[];
 };
+
+const PROGRAMME_DAYS: readonly ProgrammeDay[] = [
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
 
 const groupByStartTime = (
   events: readonly FestivalEvent[],
@@ -34,13 +47,27 @@ const groupByStartTime = (
 
 export function getDayScheduleModel(
   events: readonly FestivalEvent[],
-  programmeDay: ProgrammeDay,
+  programmeDay: ProgrammeDay | "all",
   now: Date,
 ): DayScheduleModel {
   const nowMillis = now.getTime();
   const dayEvents = events
     .filter((event) => event.programmeDay === programmeDay)
     .sort(compareByStartThenTitle);
+  const includedProgrammeDays =
+    programmeDay === "all"
+      ? PROGRAMME_DAYS.filter((day) =>
+          events.some((event) => event.programmeDay === day),
+        )
+      : [programmeDay];
+  const programmeGroups = includedProgrammeDays.map((day) => ({
+    programmeDay: day,
+    groups: groupByStartTime(
+      events
+        .filter((event) => event.programmeDay === day)
+        .sort(compareByStartThenTitle),
+    ),
+  }));
   const beforeFestival =
     nowMillis < parseCalendarTimestamp("2026-08-20T00:00:00+01:00");
   const currentEvents = beforeFestival
@@ -72,5 +99,6 @@ export function getDayScheduleModel(
     nextEvent,
     earlierGroups: groupByStartTime(earlierEvents),
     visibleGroups: groupByStartTime(visibleEvents),
+    programmeGroups,
   };
 }

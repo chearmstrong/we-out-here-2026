@@ -71,6 +71,30 @@ describe("filterBrowseEvents", () => {
       }),
     ).toEqual([]);
   });
+
+  it("matches every raw spelling of a canonical venue filter", () => {
+    const hyphenatedVenue = event({
+      id: "love-serve-hyphenated",
+      title: "Hyphenated venue",
+      venue: "Love-Serve Bar",
+    });
+    const canonicalVenue = event({
+      id: "love-serve-canonical",
+      title: "Canonical venue",
+      venue: "Love Serve Bar",
+      startsAt: "2026-08-21T20:00:00+01:00",
+      endsAt: "2026-08-21T21:00:00+01:00",
+    });
+
+    expect(
+      filterBrowseEvents([canonicalVenue, hyphenatedVenue], {
+        query: "",
+        programmeDay: "friday",
+        venue: "Love Serve Bar",
+        category: "all",
+      }),
+    ).toEqual([hyphenatedVenue, canonicalVenue]);
+  });
 });
 
 describe("filterEvents", () => {

@@ -33,6 +33,16 @@ export function UpdateNotice({ onRefresh }: { onRefresh: () => void }) {
   );
 }
 
+export function OfflineReadiness({ state }: { state: OfflineStatusState }) {
+  if (state === "ready" || state === "updating") {
+    return <p className="offline-readiness" role="status">Saved for offline use</p>;
+  }
+  if (state === "offline-unavailable") {
+    return <p className="offline-readiness offline-readiness--pending" role="status">Connect once to save this planner offline.</p>;
+  }
+  return null;
+}
+
 export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
   const [guidanceDismissed, setGuidanceDismissed] = useState(() => {
     try {
@@ -82,7 +92,6 @@ export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
 
   return (
     <aside aria-label={`Offline status for ${schedule.length} programme events`}>
-      {state === "ready" ? <p role="status">Saved for offline use</p> : null}
       {state === "ready" && !guidanceDismissed ? (
         <section
           aria-labelledby="home-screen-guidance-heading"
@@ -134,9 +143,6 @@ export function OfflineStatus({ state, onRefresh }: OfflineStatusProps) {
         >
           Home Screen help
         </button>
-      ) : null}
-      {state === "offline-unavailable" ? (
-        <p role="status">Connect once to save this planner offline.</p>
       ) : null}
       <p>Schedule checked {checkedDate}</p>
     </aside>

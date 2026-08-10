@@ -129,12 +129,29 @@ describe("downloadCalendar", () => {
     const createElement = vi.spyOn(document, "createElement");
     vi.stubGlobal("URL", { createObjectURL });
 
-    downloadCalendar([]);
+    expect(downloadCalendar([])).toBe(false);
 
     expect(createObjectURL).not.toHaveBeenCalled();
     expect(createElement).not.toHaveBeenCalled();
 
     createElement.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("reports when the browser download has been triggered", () => {
+    const createObjectURL = vi.fn(() => "blob:field-notes-calendar");
+    const revokeObjectURL = vi.fn();
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    vi.stubGlobal("URL", { createObjectURL, revokeObjectURL });
+
+    expect(
+      downloadCalendar([event({ id: "one", title: "Kotoa" })]),
+    ).toBe(true);
+    expect(click).toHaveBeenCalledOnce();
+
+    click.mockRestore();
     vi.unstubAllGlobals();
   });
 });

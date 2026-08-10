@@ -66,7 +66,63 @@ const thursdayEvents = [
   }),
 ] as const;
 
+const beforeFestival = new Date("2026-08-19T12:00:00+01:00");
+const eventsAcrossThursdayAndFriday = [
+  event({
+    id: "thursday-set",
+    title: "Thursday set",
+  }),
+  event({
+    id: "friday-set",
+    title: "Friday set",
+    programmeDay: "friday",
+    startsAt: "2026-08-21T13:00:00+01:00",
+    endsAt: "2026-08-21T14:00:00+01:00",
+  }),
+] as const;
+
 describe("getDayScheduleModel", () => {
+  it("keeps an explicit All days schedule grouped in official Programme Day order", () => {
+    const model = getDayScheduleModel(
+      eventsAcrossThursdayAndFriday,
+      "all",
+      beforeFestival,
+    );
+
+    expect(
+      model.programmeGroups.map((group) => group.programmeDay),
+    ).toEqual(["thursday", "friday"]);
+    expect(
+      model.programmeGroups[0].groups[0].events.map((event) => event.title),
+    ).toEqual(["Thursday set"]);
+    expect(
+      model.programmeGroups[1].groups[0].events.map((event) => event.title),
+    ).toEqual(["Friday set"]);
+  });
+
+  it("keeps a selected Sunday schedule scoped to Sunday", () => {
+    const sundayEvent = event({
+      id: "sunday-set",
+      title: "Sunday set",
+      programmeDay: "sunday",
+      startsAt: "2026-08-23T13:00:00+01:00",
+      endsAt: "2026-08-23T14:00:00+01:00",
+    });
+    const model = getDayScheduleModel(
+      [...eventsAcrossThursdayAndFriday, sundayEvent],
+      "sunday",
+      beforeFestival,
+    );
+
+    expect(model.programmeGroups).toHaveLength(1);
+    expect(model.programmeGroups[0].programmeDay).toBe("sunday");
+    expect(
+      model.programmeGroups[0].groups.flatMap((group) =>
+        group.events.map((event) => event.title),
+      ),
+    ).toEqual(["Sunday set"]);
+  });
+
   it("shows no live state before the festival", () => {
     expect(
       getDayScheduleModel(

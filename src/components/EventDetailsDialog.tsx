@@ -16,7 +16,11 @@ export type EventDetailsDialogProps = {
   note?: string;
   onClose: () => void;
   onToggleFavourite: (eventId: string) => void;
-  onSaveNote?: (eventId: string, note: string) => void;
+  onSaveNote?: (
+    eventId: string,
+    note: string,
+  ) => { persisted: boolean } | undefined;
+  onNotePersisted?: (persisted: boolean) => void;
   returnFocusTo?: HTMLElement | null;
   fallbackFocusTo?: HTMLElement | null;
 };
@@ -66,6 +70,7 @@ export function EventDetailsDialog({
   onClose,
   onToggleFavourite,
   onSaveNote,
+  onNotePersisted,
   returnFocusTo,
   fallbackFocusTo,
 }: EventDetailsDialogProps) {
@@ -86,6 +91,7 @@ export function EventDetailsDialog({
     () => fallbackFocusTo ?? null,
   );
   const [draftNote, setDraftNote] = useState(note.slice(0, MAX_NOTE_LENGTH));
+  const [notePersisted, setNotePersisted] = useState<boolean | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -127,6 +133,10 @@ export function EventDetailsDialog({
   useEffect(() => {
     setDraftNote(note.slice(0, MAX_NOTE_LENGTH));
   }, [event.id, note]);
+
+  useEffect(() => {
+    setNotePersisted(null);
+  }, [event.id, isFavourite]);
 
   const requestClose = () => onClose();
 
@@ -195,6 +205,8 @@ export function EventDetailsDialog({
         ) : null}
         <button
           className={`save-button save-button--wide${isFavourite ? " save-button--saved" : ""}`}
+          data-planner-event-id={event.id}
+          data-planner-focus-kind="dialog-save"
           type="button"
           aria-pressed={isFavourite}
           aria-label={`${isFavourite ? "Remove" : "Save"} ${event.title}`}
@@ -218,12 +230,28 @@ export function EventDetailsDialog({
                   MAX_NOTE_LENGTH,
                 );
                 setDraftNote(nextNote);
-                onSaveNote?.(event.id, nextNote);
+                if (onSaveNote) {
+                  const result = onSaveNote(event.id, nextNote);
+                  if (result) {
+                    setNotePersisted(result.persisted);
+                    onNotePersisted?.(result.persisted);
+                  }
+                }
               }}
             />
             <p className="note-help" id={noteHelpId}>
               <span>140 characters maximum</span>
               <span>{MAX_NOTE_LENGTH - draftNote.length} remaining</span>
+            </p>
+            <p
+              className={`event-note__feedback${notePersisted === false ? " event-note__feedback--warning" : ""}`}
+              role="status"
+            >
+              {notePersisted === true
+                ? "Note saved locally."
+                : notePersisted === false
+                  ? "Note saved for this visit only. Browser storage is unavailable."
+                  : null}
             </p>
           </div>
         ) : (

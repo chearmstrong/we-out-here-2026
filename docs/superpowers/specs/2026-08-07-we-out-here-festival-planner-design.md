@@ -75,7 +75,7 @@ This is the default home screen. With no saved events it is a friendly discovery
 
 ### Browse
 
-Browse is for advance planning and ad-hoc discovery. A searchable list is the primary browsing tool; day, venue, and category filters refine it. A secondary, horizontally scrollable timetable has a labelled hourly axis, venue rows, and event blocks positioned by start time and duration so schedule gaps are visible. Browse cards and event details support saving and removing an event, which immediately changes My Plan. The phone Day schedule is details-only; its time-first rows open the same details for saving and removing.
+Browse is for advance planning and ad-hoc discovery. Search, Programme Day, and the Family Programme quick filter remain visible; venue and category are secondary filters behind **More filters**. Active secondary filters have a visible summary and **Clear all filters** action. Venue filtering uses explicit canonical planner values, so raw source variants such as Love Serve Bar and Love-Serve Bar share one choice without changing the event’s source spelling. The planner shell retains Browse query, filters, Family state, and display mode for the open session when the user moves to My Plan and back; it does not put that context in a URL or browser storage. A secondary, horizontally scrollable desktop timetable has a labelled hourly axis, venue rows, and event blocks positioned by start time and duration so schedule gaps are visible; its time axis remains available while venue lanes scroll. Browse cards and event details support saving and removing an event, which immediately changes My Plan. On phones, Day schedule is a time-first operational view rather than a details-only list: it supports a selected Programme Day or All days grouped Thursday–Sunday, shows saved/clash state, opens details from a row body, and has a sibling inline Save/Saved action for each row.
 
 ### Event card and details
 
@@ -95,14 +95,14 @@ The base palette uses dark green, coral, sun yellow, and warm off-white. Categor
 
 ## Offline and failure behaviour
 
-- On a device that has loaded the site while online, the complete app and its schedule remain available offline.
+- The compact offline-readiness surface appears directly below planner navigation. On a device that has loaded the site while online and shows **Saved for offline use**, the complete app and its schedule remain available offline.
 - If first opened without a network, show a concise message that an initial online visit is required to download the planner.
 - If storage is unavailable or unreadable, continue to show the schedule and explain that saved plans, Event Notes, reconciled schedule changes, and dismissed change notices cannot persist until browser storage is available.
 - Do not claim the app is offline-ready until the service worker has cached its assets successfully.
 
 ## Quality strategy
 
-Automated tests cover schedule-data validation, durable stable-ID migrations and notice dismissal, favourite/note persistence, search/filter behaviour, Current and Next Programme Day selection, chronological plan ordering, overlap detection, temporal timetable positioning, UTF-8-safe calendar line folding and note export, update-prompt behaviour, and empty/storage-unavailable states. Build verification includes a GitHub Pages sub-path check so deployed assets resolve correctly. Before release, test the built site at phone dimensions, load it online, disable connectivity, and confirm that browsing, notes, and favourites still work.
+Automated tests cover schedule-data validation, durable stable-ID migrations and notice dismissal, favourite/note persistence and persistence-aware feedback, session-only Browse context, progressive filters and canonical venues, Current and Next Programme Day selection, chronological plan ordering, All-days phone scheduling, inline Save/Saved controls, overlap detection, temporal timetable positioning, UTF-8-safe calendar line folding and download acknowledgement, update-prompt behaviour, and empty/storage-unavailable states. Build verification includes a GitHub Pages sub-path check so deployed assets resolve correctly. Before release, test the built site at phone dimensions. Real first-load offline, deployed service-worker update, and calendar-import outcomes require a controlled deployed-browser environment rather than a local fixture.
 
 ## Deployment
 

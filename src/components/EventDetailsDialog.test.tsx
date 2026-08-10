@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
@@ -119,6 +119,86 @@ describe("EventDetailsDialog", () => {
     expect(screen.getByText("140 characters maximum")).toBeInTheDocument();
     expect(screen.getByLabelText("Note for Kotoa")).toHaveValue("x".repeat(140));
     expect(saveNote).toHaveBeenLastCalledWith(event.id, "x".repeat(140));
+  });
+
+  it.each([true, false])(
+    "reports persisted=%s after the note save result is known",
+    async (persisted) => {
+      const user = userEvent.setup();
+      const notePersisted = vi.fn();
+
+      render(
+        <EventDetailsDialog
+          event={event}
+          isFavourite={true}
+          note=""
+          isClashing={false}
+          onClose={() => undefined}
+          onToggleFavourite={() => undefined}
+          onSaveNote={() => ({ persisted })}
+          onNotePersisted={notePersisted}
+        />,
+      );
+
+      await user.type(screen.getByLabelText("Note for Kotoa"), "x");
+
+      expect(notePersisted).toHaveBeenCalledWith(persisted);
+    },
+  );
+
+  it.each([
+    [true, "Note saved locally."],
+    [false, "Note saved for this visit only. Browser storage is unavailable."],
+  ] as const)(
+    "keeps persisted=%s note feedback inside the isolated dialog",
+    async (persisted, expectedFeedback) => {
+      const user = userEvent.setup();
+
+      render(
+        <EventDetailsDialog
+          event={event}
+          isFavourite={true}
+          note=""
+          isClashing={false}
+          onClose={() => undefined}
+          onToggleFavourite={() => undefined}
+          onSaveNote={() => ({ persisted })}
+        />,
+      );
+
+      const dialog = screen.getByRole("dialog", { name: "Kotoa details" });
+      await user.type(within(dialog).getByLabelText("Note for Kotoa"), "x");
+
+      expect(within(dialog).getByRole("status")).toHaveTextContent(
+        expectedFeedback,
+      );
+      if (!persisted) {
+        expect(within(dialog).queryByText("Note saved locally.")).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it("does not reuse an old note confirmation after the saved state changes", async () => {
+    const user = userEvent.setup();
+    const props = {
+      event,
+      note: "",
+      isClashing: false,
+      onClose: () => undefined,
+      onToggleFavourite: () => undefined,
+      onSaveNote: () => ({ persisted: true }),
+    };
+    const view = render(
+      <EventDetailsDialog {...props} isFavourite={true} />,
+    );
+
+    await user.type(screen.getByLabelText("Note for Kotoa"), "x");
+    expect(screen.getByRole("status")).toHaveTextContent("Note saved locally.");
+
+    view.rerender(<EventDetailsDialog {...props} isFavourite={false} />);
+    view.rerender(<EventDetailsDialog {...props} isFavourite={true} />);
+
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
   it("does not offer an Event Note until the event is saved", () => {

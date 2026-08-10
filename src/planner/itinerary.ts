@@ -4,6 +4,7 @@ import type {
   ProgrammeDay,
 } from "../domain/festival";
 import { parseCalendarTimestamp } from "./time";
+import { canonicalVenueValue } from "./venues";
 
 export type BrowseFilters = {
   query: string;
@@ -11,6 +12,8 @@ export type BrowseFilters = {
   venue: string | "all";
   category: EventCategory | "all";
 };
+
+export type BrowseMode = "list" | "timetable";
 
 const londonDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/London",
@@ -49,6 +52,15 @@ export function getDefaultBrowseProgrammeDay(
   return festivalProgrammeDays[londonDate]!;
 }
 
+export function createInitialBrowseFilters(now: Date): BrowseFilters {
+  return {
+    query: "",
+    programmeDay: getDefaultBrowseProgrammeDay(now),
+    venue: "all",
+    category: "all",
+  };
+}
+
 export function filterBrowseEvents(
   events: readonly FestivalEvent[],
   filters: BrowseFilters,
@@ -63,7 +75,9 @@ export function filterBrowseEvents(
         (hasQuery ||
           filters.programmeDay === "all" ||
           event.programmeDay === filters.programmeDay) &&
-        (filters.venue === "all" || event.venue === filters.venue) &&
+        (filters.venue === "all" ||
+          canonicalVenueValue(event.venue) ===
+            canonicalVenueValue(filters.venue)) &&
         (filters.category === "all" || event.category === filters.category),
     )
     .sort(compareByStartThenTitle);

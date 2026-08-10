@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -9,13 +8,14 @@ import type { FestivalEvent, ProgrammeDay } from "../domain/festival";
 import {
   filterBrowseEvents,
   getClashingEventIds,
-  getDefaultBrowseProgrammeDay,
   type BrowseFilters,
+  type BrowseMode,
 } from "../planner/itinerary";
 import {
   getDayScheduleModel,
   type DayScheduleGroup,
 } from "../planner/daySchedule";
+import { getVenueOptions } from "../planner/venues";
 import {
   CategoryIcon,
   categoryLabel,
@@ -26,12 +26,6 @@ import {
 import { EventDetailsDialog } from "./EventDetailsDialog";
 import { Filters } from "./Filters";
 
-const INITIAL_FILTERS: Omit<BrowseFilters, "programmeDay"> = {
-  query: "",
-  venue: "all",
-  category: "all",
-};
-
 const PROGRAMME_DAYS: ProgrammeDay[] = [
   "thursday",
   "friday",
@@ -39,15 +33,23 @@ const PROGRAMME_DAYS: ProgrammeDay[] = [
   "sunday",
 ];
 
-type BrowseMode = "list" | "timetable";
+export type { BrowseFilters, BrowseMode } from "../planner/itinerary";
 
 export type BrowseViewProps = {
   events: readonly FestivalEvent[];
   favouriteIds: ReadonlySet<string>;
   now: Date;
+  filters: BrowseFilters;
+  mode: BrowseMode;
   notesByEventId?: Readonly<Record<string, string>>;
   onToggleFavourite: (eventId: string) => void;
-  onSaveNote?: (eventId: string, note: string) => void;
+  onSaveNote?: (
+    eventId: string,
+    note: string,
+  ) => { persisted: boolean } | undefined;
+  onFiltersChange: (filters: BrowseFilters) => void;
+  onModeChange: (mode: BrowseMode) => void;
+  onClearFilters: () => void;
 };
 
 type EventCardListProps = {
@@ -172,15 +174,19 @@ function EventCardList({
 
 type PhoneDayScheduleProps = Pick<
   EventCardListProps,
-  "events" | "favouriteIds" | "clashingIds" | "onViewDetails"
+  | "events"
+  | "favouriteIds"
+  | "clashingIds"
+  | "onToggleFavourite"
+  | "onViewDetails"
 > & {
-  programmeDay: ProgrammeDay;
+  programmeDay: ProgrammeDay | "all";
   now: Date;
 };
 
 type PhoneProgrammeDaySelectorProps = {
-  programmeDay: ProgrammeDay;
-  onChange: (programmeDay: ProgrammeDay) => void;
+  programmeDay: ProgrammeDay | "all";
+  onChange: (programmeDay: ProgrammeDay | "all") => void;
 };
 
 function PhoneProgrammeDaySelector({
@@ -193,9 +199,10 @@ function PhoneProgrammeDaySelector({
       <select
         value={programmeDay}
         onChange={(changeEvent) =>
-          onChange(changeEvent.currentTarget.value as ProgrammeDay)
+          onChange(changeEvent.currentTarget.value as ProgrammeDay | "all")
         }
       >
+        <option value="all">All days</option>
         {PROGRAMME_DAYS.map((day) => (
           <option key={day} value={day}>
             {programmeDayLabel(day)}
@@ -208,7 +215,10 @@ function PhoneProgrammeDaySelector({
 
 type PhoneDayScheduleRowsProps = Pick<
   EventCardListProps,
-  "favouriteIds" | "clashingIds" | "onViewDetails"
+  | "favouriteIds"
+  | "clashingIds"
+  | "onToggleFavourite"
+  | "onViewDetails"
 > & {
   groups: readonly DayScheduleGroup[];
   className?: string;
@@ -218,6 +228,7 @@ function PhoneDayScheduleRows({
   groups,
   favouriteIds,
   clashingIds,
+  onToggleFavourite,
   onViewDetails,
   className,
 }: PhoneDayScheduleRowsProps) {
@@ -240,36 +251,48 @@ function PhoneDayScheduleRows({
               const clashDescriptionId = `phone-schedule-clash-${event.id}`;
 
               return (
-                <button
-                  aria-label={`${event.title} day schedule event`}
-                  aria-describedby={`${eventDescriptionId}${isClashing ? ` ${clashDescriptionId}` : ""}`}
-                  className={`phone-day-schedule__row${isFavourite ? " phone-day-schedule__row--saved" : ""}${isClashing ? " phone-day-schedule__row--clashing" : ""}`}
-                  key={event.id}
-                  onClick={(clickEvent) =>
-                    onViewDetails(event.id, clickEvent.currentTarget)
-                  }
-                  type="button"
-                >
-                  <time dateTime={event.startsAt}>{formatTimeRange(event)}</time>
-                  <span className="phone-day-schedule__category">
-                    <CategoryIcon category={event.category} />
-                    {categoryLabel(event.category)}
-                  </span>
-                  <strong>{event.title}</strong>
-                  <span className="phone-day-schedule__venue">{event.venue}</span>
-                  {isFavourite ? (
-                    <span className="phone-day-schedule__saved">Saved</span>
-                  ) : null}
-                  <span className="visually-hidden" id={eventDescriptionId}>
-                    {formatTimeRange(event)}, {event.venue},{" "}
-                    {categoryLabel(event.category)}, {isFavourite ? "Saved" : "Not saved"}
-                  </span>
-                  {isClashing ? (
-                    <span className="visually-hidden" id={clashDescriptionId}>
-                      Clashes with another saved event
+                <article className="phone-day-schedule__event" key={event.id}>
+                  <button
+                    aria-label={`${event.title} day schedule event`}
+                    aria-describedby={`${eventDescriptionId}${isClashing ? ` ${clashDescriptionId}` : ""}`}
+                    className={`phone-day-schedule__row${isFavourite ? " phone-day-schedule__row--saved" : ""}${isClashing ? " phone-day-schedule__row--clashing" : ""}`}
+                    onClick={(clickEvent) =>
+                      onViewDetails(event.id, clickEvent.currentTarget)
+                    }
+                    type="button"
+                  >
+                    <time dateTime={event.startsAt}>{formatTimeRange(event)}</time>
+                    <span className="phone-day-schedule__category">
+                      <CategoryIcon category={event.category} />
+                      {categoryLabel(event.category)}
                     </span>
-                  ) : null}
-                </button>
+                    <strong>{event.title}</strong>
+                    <span className="phone-day-schedule__venue">{event.venue}</span>
+                    {isFavourite ? (
+                      <span className="phone-day-schedule__saved">Saved</span>
+                    ) : null}
+                    <span className="visually-hidden" id={eventDescriptionId}>
+                      {formatTimeRange(event)}, {event.venue},{" "}
+                      {categoryLabel(event.category)}, {isFavourite ? "Saved" : "Not saved"}
+                    </span>
+                    {isClashing ? (
+                      <span className="visually-hidden" id={clashDescriptionId}>
+                        Clashes with another saved event
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    aria-label={`${isFavourite ? "Remove" : "Save"} ${event.title} from day schedule`}
+                    aria-pressed={isFavourite}
+                    className="phone-day-schedule__save"
+                    data-planner-event-id={event.id}
+                    data-planner-focus-kind="phone-schedule-save"
+                    onClick={() => onToggleFavourite(event.id)}
+                    type="button"
+                  >
+                    {isFavourite ? "Saved" : "Save"}
+                  </button>
+                </article>
               );
             })}
           </div>
@@ -283,6 +306,7 @@ function PhoneDaySchedule({
   events,
   favouriteIds,
   clashingIds,
+  onToggleFavourite,
   onViewDetails,
   programmeDay,
   now,
@@ -294,18 +318,25 @@ function PhoneDaySchedule({
     programmeDay,
     now,
   );
-  const hasVisibleRows = model.visibleGroups.length > 0;
-  const hasEarlierRows = model.earlierGroups.length > 0;
+  const isAllDays = programmeDay === "all";
+  const programmeDayHeading = isAllDays
+    ? "All days"
+    : programmeDayLabel(programmeDay);
+  const hasVisibleRows = isAllDays
+    ? model.programmeGroups.length > 0
+    : model.visibleGroups.length > 0;
+  const hasEarlierRows = !isAllDays && model.earlierGroups.length > 0;
   const hasLiveSummary =
+    !isAllDays &&
     !model.beforeFestival &&
     (model.currentEvents.length > 0 || model.nextEvent !== undefined);
 
   return (
     <section
-      aria-label={`${programmeDayLabel(programmeDay)} day schedule`}
+      aria-label={`${programmeDayHeading}${isAllDays ? "" : " day"} schedule`}
       className="phone-day-schedule"
     >
-      <h3>{programmeDayLabel(programmeDay)}</h3>
+      <h3>{programmeDayHeading}</h3>
       <button
         aria-pressed={savedOnly}
         className="phone-day-schedule__control"
@@ -331,11 +362,30 @@ function PhoneDaySchedule({
           ) : null}
         </section>
       ) : null}
-      {hasVisibleRows ? (
+      {isAllDays && hasVisibleRows ? (
+        <div className="phone-day-schedule__programme-days">
+          {model.programmeGroups.map((programmeGroup) => (
+            <section
+              className="phone-day-schedule__programme-day"
+              key={programmeGroup.programmeDay}
+            >
+              <h4>{programmeDayLabel(programmeGroup.programmeDay)}</h4>
+              <PhoneDayScheduleRows
+                groups={programmeGroup.groups}
+                favouriteIds={favouriteIds}
+                clashingIds={clashingIds}
+                onToggleFavourite={onToggleFavourite}
+                onViewDetails={onViewDetails}
+              />
+            </section>
+          ))}
+        </div>
+      ) : hasVisibleRows ? (
         <PhoneDayScheduleRows
           groups={model.visibleGroups}
           favouriteIds={favouriteIds}
           clashingIds={clashingIds}
+          onToggleFavourite={onToggleFavourite}
           onViewDetails={onViewDetails}
         />
       ) : null}
@@ -354,6 +404,7 @@ function PhoneDaySchedule({
               groups={model.earlierGroups}
               favouriteIds={favouriteIds}
               clashingIds={clashingIds}
+              onToggleFavourite={onToggleFavourite}
               onViewDetails={onViewDetails}
               className="phone-day-schedule__groups--earlier"
             />
@@ -364,7 +415,7 @@ function PhoneDaySchedule({
         <p className="phone-day-schedule__empty">
           {savedOnly
             ? "No saved events match this schedule view."
-            : `No matches for ${programmeDayLabel(programmeDay)}.`}
+            : `No matches for ${programmeDayHeading}.`}
         </p>
       ) : null}
     </section>
@@ -412,35 +463,42 @@ function Timetable({
             <p className="timetable-hint">
               Scroll sideways to compare start times and spot open gaps.
             </p>
-            <div className="timetable-scroll">
+            <div
+              aria-label={`${programmeDayLabel(programmeDay)} timetable scroll region`}
+              className="timetable-scroll"
+              role="group"
+            >
               <div
                 className="timetable-chart"
                 style={{ width: `${trackWidth + 144}px` }}
               >
-                <div className="timetable-axis-label" aria-hidden="true">
-                  Venue / time
-                </div>
-                <div
-                  className="timetable-axis"
-                  role="group"
-                  aria-label={`${programmeDayLabel(programmeDay)} time axis`}
-                  style={{ width: `${trackWidth}px` }}
-                >
-                  {hourMarks.map((mark, index) => (
-                    <time
-                      className="timetable-hour"
-                      dateTime={new Date(mark).toISOString()}
-                      key={mark}
-                      style={{
-                        left: `${index * 60 * TIMETABLE_PIXELS_PER_MINUTE}px`,
-                      }}
-                    >
-                      {hourFormatter.format(new Date(mark))}
-                    </time>
-                  ))}
+                <div className="timetable-scroll__axis">
+                  <div className="timetable-axis-label" aria-hidden="true">
+                    Venue / time
+                  </div>
+                  <div
+                    className="timetable-axis"
+                    role="group"
+                    aria-label={`${programmeDayLabel(programmeDay)} time axis`}
+                    style={{ width: `${trackWidth}px` }}
+                  >
+                    {hourMarks.map((mark, index) => (
+                      <time
+                        className="timetable-hour"
+                        dateTime={new Date(mark).toISOString()}
+                        key={mark}
+                        style={{
+                          left: `${index * 60 * TIMETABLE_PIXELS_PER_MINUTE}px`,
+                        }}
+                      >
+                        {hourFormatter.format(new Date(mark))}
+                      </time>
+                    ))}
+                  </div>
                 </div>
 
-                {venues.map((venue) => {
+                <div className="timetable-scroll__lanes">
+                  {venues.map((venue) => {
                   const venueEvents = dayEvents.filter(
                     (event) => event.venue === venue,
                   );
@@ -510,6 +568,8 @@ function Timetable({
                                 </button>
                                 <button
                                   className="timetable-event__save"
+                                  data-planner-event-id={event.id}
+                                  data-planner-focus-kind="timetable-save"
                                   type="button"
                                   style={{ width: "44px", height: "44px" }}
                                   aria-pressed={favouriteIds.has(event.id)}
@@ -538,7 +598,8 @@ function Timetable({
                       </div>
                     </section>
                   );
-                })}
+                  })}
+                </div>
               </div>
             </div>
           </section>
@@ -552,41 +613,21 @@ export function BrowseView({
   events,
   favouriteIds,
   now,
+  filters,
+  mode,
   notesByEventId = {},
   onToggleFavourite,
   onSaveNote,
+  onFiltersChange,
+  onModeChange,
+  onClearFilters,
 }: BrowseViewProps) {
-  const [filters, setFilters] = useState<BrowseFilters>(() => ({
-    ...INITIAL_FILTERS,
-    programmeDay: getDefaultBrowseProgrammeDay(new Date()),
-  }));
-  const [mode, setMode] = useState<BrowseMode>("list");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const isPhoneLayout = usePhoneLayout();
   const detailsOpenerRef = useRef<HTMLButtonElement | null>(null);
   const viewToggleRef = useRef<HTMLButtonElement | null>(null);
 
-  useEffect(() => {
-    if (
-      isPhoneLayout &&
-      mode === "timetable" &&
-      filters.programmeDay === "all"
-    ) {
-      setFilters((currentFilters) =>
-        currentFilters.programmeDay === "all"
-          ? { ...currentFilters, programmeDay: "thursday" }
-          : currentFilters,
-      );
-    }
-  }, [filters.programmeDay, isPhoneLayout, mode]);
-
-  const venues = useMemo(
-    () =>
-      [...new Set(events.map((event) => event.venue))].sort((left, right) =>
-        left.localeCompare(right),
-      ),
-    [events],
-  );
+  const venues = useMemo(() => getVenueOptions(events), [events]);
   const visibleEvents = useMemo(
     () => filterBrowseEvents(events, filters),
     [events, filters],
@@ -601,8 +642,6 @@ export function BrowseView({
   const selectedEvent = selectedEventId
     ? events.find((event) => event.id === selectedEventId)
     : undefined;
-  const phoneProgrammeDay =
-    filters.programmeDay === "all" ? "thursday" : filters.programmeDay;
   const isPhoneSchedule = isPhoneLayout && mode === "timetable";
 
   const openDetails = (eventId: string, opener: HTMLButtonElement) => {
@@ -633,19 +672,7 @@ export function BrowseView({
             type="button"
             aria-pressed={mode === "timetable"}
             onClick={() => {
-              if (
-                mode === "list" &&
-                isPhoneLayout &&
-                filters.programmeDay === "all"
-              ) {
-                setFilters((currentFilters) => ({
-                  ...currentFilters,
-                  programmeDay: "thursday",
-                }));
-              }
-              setMode((currentMode) =>
-                currentMode === "list" ? "timetable" : "list",
-              );
+              onModeChange(mode === "list" ? "timetable" : "list");
             }}
           >
             {mode === "list"
@@ -660,17 +687,19 @@ export function BrowseView({
 
         {isPhoneSchedule ? (
           <PhoneProgrammeDaySelector
-            programmeDay={phoneProgrammeDay}
+            programmeDay={filters.programmeDay}
             onChange={(programmeDay) =>
-              setFilters((currentFilters) => ({
-                ...currentFilters,
-                programmeDay,
-              }))
+              onFiltersChange({ ...filters, programmeDay })
             }
           />
         ) : (
           <>
-            <Filters filters={filters} venues={venues} onChange={setFilters} />
+            <Filters
+              filters={filters}
+              venues={venues}
+              onChange={onFiltersChange}
+              onClear={onClearFilters}
+            />
             <p className="results-count" role="status" aria-live="polite">
               {visibleEvents.length}{" "}
               {visibleEvents.length === 1 ? "event" : "events"}
@@ -683,8 +712,9 @@ export function BrowseView({
             events={events}
             favouriteIds={favouriteIds}
             clashingIds={clashingIds}
-            programmeDay={phoneProgrammeDay}
+            programmeDay={filters.programmeDay}
             now={now}
+            onToggleFavourite={onToggleFavourite}
             onViewDetails={openDetails}
           />
         ) : visibleEvents.length === 0 ? (

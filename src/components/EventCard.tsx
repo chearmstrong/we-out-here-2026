@@ -175,6 +175,8 @@ export function EventCard({
         ) : null}
         <button
           className={`save-button${isFavourite ? " save-button--saved" : ""}`}
+          data-planner-event-id={event.id}
+          data-planner-focus-kind="event-card-save"
           type="button"
           aria-pressed={isFavourite}
           aria-label={`${isFavourite ? "Remove" : "Save"} ${event.title}`}

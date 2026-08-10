@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { OfflineStatus } from "./OfflineStatus";
+import { OfflineReadiness, OfflineStatus } from "./OfflineStatus";
 
 const HOME_SCREEN_GUIDANCE_DISMISSED_KEY =
   "field-notes:home-screen-guidance-dismissed";
@@ -43,10 +43,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("confirms that the planner is available offline after caching", () => {
+it("keeps Home Screen guidance in the lower status surface after caching", () => {
   render(<OfflineStatus state="ready" onRefresh={() => undefined} />);
 
-  expect(screen.getByText("Saved for offline use")).toBeInTheDocument();
+  expect(screen.queryByText("Saved for offline use")).not.toBeInTheDocument();
   expect(
     screen.getByRole("heading", { name: "Keep Field Notes handy" }),
   ).toBeInTheDocument();
@@ -68,10 +68,12 @@ it("confirms that the planner is available offline after caching", () => {
   expect(screen.getByRole("button", { name: "Not now" })).toBeInTheDocument();
 });
 
-it("does not claim offline use is ready before caching succeeds", () => {
+it("does not duplicate the pending readiness message in the lower status surface", () => {
   render(<OfflineStatus state="offline-unavailable" onRefresh={() => undefined} />);
 
-  expect(screen.getByText(/Connect once to save this planner offline/i)).toBeInTheDocument();
+  expect(
+    screen.queryByText(/Connect once to save this planner offline/i),
+  ).not.toBeInTheDocument();
   expect(screen.queryByText("Saved for offline use")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("heading", { name: "Keep Field Notes handy" }),
@@ -83,6 +85,16 @@ it("does not claim offline use is ready before caching succeeds", () => {
         "iPhone/iPad: Home Screen apps keep a separate plan from Safari. Plans saved in Safari will not appear there.",
     ),
   ).not.toBeInTheDocument();
+});
+
+it.each([
+  ["ready", "Saved for offline use"],
+  ["updating", "Saved for offline use"],
+  ["offline-unavailable", "Connect once to save this planner offline."],
+] as const)("renders %s concise readiness separately", (state, text) => {
+  render(<OfflineReadiness state={state} />);
+
+  expect(screen.getByRole("status")).toHaveTextContent(text);
 });
 
 it("reveals platform-specific Home Screen instructions on request", async () => {

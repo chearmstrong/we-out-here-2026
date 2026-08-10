@@ -203,7 +203,7 @@ describe("PlanView", () => {
     );
   });
 
-  it("warns about unavailable storage and lets schedule-change notices be dismissed", async () => {
+  it("lets schedule-change notices be dismissed", async () => {
     const user = userEvent.setup();
     const dismiss = vi.fn();
 
@@ -211,15 +211,11 @@ describe("PlanView", () => {
       <PlanView
         {...baseProps}
         events={[]}
-        persisted={false}
         removedIds={["removed-one", "removed-two"]}
         onDismissScheduleChanges={dismiss}
       />,
     );
 
-    expect(
-      screen.getByRole("status", { name: "Storage unavailable" }),
-    ).toHaveTextContent(/cannot persist/i);
     expect(
       screen.getByText(/2 saved events changed or were removed/i),
     ).toBeInTheDocument();

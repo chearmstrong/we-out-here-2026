@@ -1,4 +1,4 @@
-import { StrictMode, act } from "react";
+import { StrictMode, act, useState } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -8,12 +8,35 @@ import {
   PHONE_LAYOUT_QUERY,
   type BrowseViewProps,
 } from "./BrowseView";
+import {
+  createInitialBrowseFilters,
+  type BrowseFilters,
+  type BrowseMode,
+} from "../planner/itinerary";
 
 function BrowseView({
   now = new Date("2026-08-19T13:30:00+01:00"),
   ...props
-}: Omit<BrowseViewProps, "now"> & { now?: Date }) {
-  return <BrowseViewComponent {...props} now={now} />;
+}: Omit<
+  BrowseViewProps,
+  "now" | "filters" | "mode" | "onFiltersChange" | "onModeChange" | "onClearFilters"
+> & { now?: Date }) {
+  const [filters, setFilters] = useState<BrowseFilters>(() =>
+    createInitialBrowseFilters(new Date()),
+  );
+  const [mode, setMode] = useState<BrowseMode>("list");
+
+  return (
+    <BrowseViewComponent
+      {...props}
+      now={now}
+      filters={filters}
+      mode={mode}
+      onFiltersChange={setFilters}
+      onModeChange={setMode}
+      onClearFilters={() => setFilters(createInitialBrowseFilters(new Date()))}
+    />
+  );
 }
 
 const events: FestivalEvent[] = [
@@ -36,6 +59,23 @@ const events: FestivalEvent[] = [
     endsAt: "2026-08-21T11:00:00+01:00",
     category: "family",
     source: "wider-programme",
+  },
+];
+
+const loveServeEvents: FestivalEvent[] = [
+  {
+    ...events[0],
+    id: "thursday:love-serve-bar:hyphenated",
+    title: "Hyphenated Love Serve set",
+    venue: "Love-Serve Bar",
+  },
+  {
+    ...events[0],
+    id: "thursday:love-serve-bar:canonical",
+    title: "Canonical Love Serve set",
+    venue: "Love Serve Bar",
+    startsAt: "2026-08-20T14:00:00+01:00",
+    endsAt: "2026-08-20T15:00:00+01:00",
   },
 ];
 
@@ -177,6 +217,7 @@ describe("BrowseView", () => {
 
     await user.type(screen.getByLabelText("Search programme"), "Kotoa");
     await user.selectOptions(screen.getByLabelText("Programme Day"), "thursday");
+    await user.click(screen.getByRole("button", { name: "More filters" }));
     await user.selectOptions(screen.getByLabelText("Venue"), "Main Stage");
     await user.selectOptions(screen.getByLabelText("Category"), "music");
 
@@ -185,6 +226,77 @@ describe("BrowseView", () => {
     expect(
       screen.queryByRole("article", { name: /Leaf Printing/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("discloses canonical secondary filters and clears them through planner state", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-19T23:00:00+01:00"));
+
+    render(
+      <BrowseView
+        events={[...loveServeEvents, events[1]]}
+        favouriteIds={new Set()}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+    vi.useRealTimers();
+    const user = userEvent.setup();
+    const moreFilters = screen.getByRole("button", { name: "More filters" });
+
+    expect(moreFilters).toHaveAttribute("aria-expanded", "false");
+    expect(moreFilters).toHaveAttribute(
+      "aria-controls",
+      "programme-secondary-filters",
+    );
+    expect(
+      screen.queryByRole("combobox", { name: "Venue" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Family programme" })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Programme Day" })).toBeVisible();
+
+    moreFilters.focus();
+    await user.keyboard("{Enter}");
+
+    expect(moreFilters).toHaveAttribute("aria-expanded", "true");
+
+    await user.keyboard("{Enter}");
+
+    expect(moreFilters).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByRole("combobox", { name: "Venue" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(moreFilters);
+
+    expect(moreFilters).toHaveAttribute("aria-expanded", "true");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Venue" }),
+      "Love Serve Bar",
+    );
+
+    expect(screen.getByText("Venue: Love Serve Bar")).toBeVisible();
+    expect(
+      screen.getByRole("article", { name: "Hyphenated Love Serve set" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("article", { name: "Canonical Love Serve set" }),
+    ).toBeVisible();
+    expect(
+      screen.getAllByRole("option", { name: "Love Serve Bar" }),
+    ).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Clear all filters" }));
+
+    expect(
+      screen.queryByText("Venue: Love Serve Bar"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Venue" })).toHaveValue("all");
+    expect(screen.getByRole("combobox", { name: "Programme Day" })).toHaveValue(
+      "thursday",
+    );
+    expect(screen.getByRole("searchbox", { name: "Search programme" })).toHaveValue(
+      "",
+    );
   });
 
   it("toggles the Family programme shortcut without replacing the other Browse filters", async () => {
@@ -241,6 +353,7 @@ describe("BrowseView", () => {
     const familyProgrammeFilter = screen.getByRole("button", {
       name: "Family programme",
     });
+    expect(familyProgrammeFilter).toBeVisible();
     await user.click(familyProgrammeFilter);
 
     expect(familyProgrammeFilter).toHaveAttribute("aria-pressed", "true");
@@ -255,6 +368,7 @@ describe("BrowseView", () => {
     ).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Programme Day"), "friday");
+    await user.click(screen.getByRole("button", { name: "More filters" }));
     await user.selectOptions(screen.getByLabelText("Venue"), "Family Space");
 
     expect(
@@ -457,6 +571,7 @@ describe("BrowseView", () => {
     );
 
     await user.type(screen.getByLabelText("Search programme"), "missing");
+    await user.click(screen.getByRole("button", { name: "More filters" }));
     await user.selectOptions(screen.getByLabelText("Venue"), "Main Stage");
     await user.selectOptions(screen.getByLabelText("Category"), "talk");
     expect(screen.getByRole("status")).toHaveTextContent("0 events");
@@ -478,6 +593,7 @@ describe("BrowseView", () => {
     await user.click(screen.getByRole("button", { name: "Show browse" }));
 
     expect(screen.getByLabelText("Search programme")).toHaveValue("missing");
+    await user.click(screen.getByRole("button", { name: "More filters" }));
     expect(screen.getByLabelText("Venue")).toHaveValue("Main Stage");
     expect(screen.getByLabelText("Category")).toHaveValue("talk");
     expect(screen.getByRole("status")).toHaveTextContent("0 events");
@@ -582,7 +698,42 @@ describe("BrowseView", () => {
     }
   });
 
-  it("selects Thursday before opening a phone schedule from All days", async () => {
+  it("keeps All days grouped and saves inline without opening details", async () => {
+    mockViewportLayout(390, 844);
+    const user = userEvent.setup();
+    const toggle = vi.fn();
+
+    render(
+      <BrowseView
+        events={events}
+        favouriteIds={new Set()}
+        onToggleFavourite={toggle}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Programme Day"), "all");
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
+
+    expect(screen.getByLabelText("Programme Day")).toHaveValue("all");
+    expect(screen.getByRole("heading", { name: "Thursday" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Friday" })).toBeVisible();
+
+    const details = screen.getByRole("button", {
+      name: "Kotoa day schedule event",
+    });
+    const save = screen.getByRole("button", {
+      name: "Save Kotoa from day schedule",
+    });
+    expect(details.parentElement).toBe(save.parentElement);
+    expect(details).not.toContainElement(save);
+
+    await user.click(save);
+
+    expect(toggle).toHaveBeenCalledWith("thursday:main-stage:kotoa");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens phone schedule details from the row body and returns focus there", async () => {
     mockViewportLayout(390, 844);
     const user = userEvent.setup();
 
@@ -594,17 +745,45 @@ describe("BrowseView", () => {
       />,
     );
 
-    await user.selectOptions(screen.getByLabelText("Programme Day"), "all");
     await user.click(screen.getByRole("button", { name: "Show schedule" }));
+    const details = screen.getByRole("button", {
+      name: "Kotoa day schedule event",
+    });
+    await user.click(details);
 
-    expect(screen.getByLabelText("Programme Day")).toHaveValue("thursday");
-    expect(
-      screen.getByRole("region", { name: "Thursday day schedule" }),
-    ).toBeVisible();
-    expect(screen.queryByText("Leaf Printing")).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Kotoa details" })).toBeVisible();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(details).toHaveFocus());
   });
 
-  it("uses Thursday when the post-festival default opens a phone schedule", async () => {
+  it("tabs from the phone schedule row body to its labelled inline Save button", async () => {
+    mockViewportLayout(390, 844);
+    const user = userEvent.setup();
+
+    render(
+      <BrowseView
+        events={[events[0]]}
+        favouriteIds={new Set()}
+        onToggleFavourite={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Show schedule" }));
+    const details = screen.getByRole("button", {
+      name: "Kotoa day schedule event",
+    });
+    const save = screen.getByRole("button", {
+      name: "Save Kotoa from day schedule",
+    });
+    details.focus();
+    await user.tab();
+
+    expect(save).toBeVisible();
+    expect(save).toHaveFocus();
+    expect(save).toHaveAccessibleName("Save Kotoa from day schedule");
+  });
+
+  it("keeps the post-festival All days default when opening a phone schedule", async () => {
     mockViewportLayout(390, 844);
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-24T12:00:00+01:00"));
@@ -622,13 +801,16 @@ describe("BrowseView", () => {
     expect(screen.getByLabelText("Programme Day")).toHaveValue("all");
     await user.click(screen.getByRole("button", { name: "Show schedule" }));
 
-    expect(screen.getByLabelText("Programme Day")).toHaveValue("thursday");
+    expect(screen.getByLabelText("Programme Day")).toHaveValue("all");
     expect(
       screen.getByRole("button", { name: "Kotoa day schedule event" }),
     ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Leaf Printing day schedule event" }),
+    ).toBeVisible();
   });
 
-  it("offers only concrete programme days during phone schedule", async () => {
+  it("offers All days and every concrete programme day during phone schedule", async () => {
     mockViewportLayout(390, 844);
     const user = userEvent.setup();
 
@@ -646,10 +828,10 @@ describe("BrowseView", () => {
       [...screen.getByLabelText("Programme Day").querySelectorAll("option")].map(
         (option) => option.getAttribute("value"),
       ),
-    ).toEqual(["thursday", "friday", "saturday", "sunday"]);
+    ).toEqual(["all", "thursday", "friday", "saturday", "sunday"]);
   });
 
-  it("keeps a concrete day selected when an All-days desktop timetable becomes phone schedule", async () => {
+  it("keeps All days selected when a desktop timetable becomes phone schedule", async () => {
     const viewport = mockPhoneLayout(false);
     const user = userEvent.setup();
 
@@ -669,11 +851,12 @@ describe("BrowseView", () => {
     act(() => viewport.setMatches(true));
 
     await waitFor(() =>
-      expect(screen.getByLabelText("Programme Day")).toHaveValue("thursday"),
+      expect(screen.getByLabelText("Programme Day")).toHaveValue("all"),
     );
     expect(
-      screen.getByRole("region", { name: "Thursday day schedule" }),
+      screen.getByRole("region", { name: "All days schedule" }),
     ).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Friday" })).toBeVisible();
   });
 
   it.each([
@@ -751,6 +934,12 @@ describe("BrowseView", () => {
     expect(
       screen.getByRole("group", { name: "Thursday time axis" }),
     ).toHaveTextContent("16:00");
+    const scroll = screen.getByRole("group", {
+      name: "Thursday timetable scroll region",
+    });
+    expect(
+      within(scroll).getByRole("group", { name: "Thursday time axis" }),
+    ).toBeInTheDocument();
     const kotoa = screen.getByRole("article", { name: "Kotoa timetable event" });
     const late = screen.getByRole("article", { name: "Late Set timetable event" });
     const short = screen.getByRole("article", {

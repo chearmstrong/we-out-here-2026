@@ -77,9 +77,9 @@ export function createCalendar(
 export function downloadCalendar(
   events: readonly FestivalEvent[],
   notesByEventId: Readonly<Record<string, string>> = {},
-): void {
+): boolean {
   if (events.length === 0) {
-    return;
+    return false;
   }
 
   const calendar = new Blob([createCalendar(events, notesByEventId)], {
@@ -91,4 +91,5 @@ export function downloadCalendar(
   link.download = "we-out-here-2026-plan.ics";
   link.click();
   URL.revokeObjectURL(downloadUrl);
+  return true;
 }

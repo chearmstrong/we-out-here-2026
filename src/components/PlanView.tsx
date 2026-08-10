@@ -31,10 +31,12 @@ export type PlanViewProps = {
   favouriteIds: ReadonlySet<string>;
   notesByEventId?: Readonly<Record<string, string>>;
   now: Date;
-  persisted?: boolean;
   removedIds?: readonly string[];
   onToggleFavourite: (eventId: string) => void;
-  onSaveNote?: (eventId: string, note: string) => void;
+  onSaveNote?: (
+    eventId: string,
+    note: string,
+  ) => { persisted: boolean } | undefined;
   onBrowse: () => void;
   onExport: () => void;
   onClear?: () => void;
@@ -46,7 +48,6 @@ export function PlanView({
   favouriteIds,
   notesByEventId = {},
   now,
-  persisted = true,
   removedIds = [],
   onToggleFavourite,
   onSaveNote,
@@ -124,17 +125,6 @@ export function PlanView({
       </header>
 
       <div className="plan-statuses">
-        {!persisted ? (
-          <p
-            className="storage-warning"
-            role="status"
-            aria-label="Storage unavailable"
-          >
-            Browser storage is unavailable. Your plan and Event Notes work for
-            this visit, but cannot persist after you close or reload the page.
-          </p>
-        ) : null}
-
         {removedIds.length > 0 ? (
           <aside className="schedule-change" aria-label="Schedule changes">
             <div>

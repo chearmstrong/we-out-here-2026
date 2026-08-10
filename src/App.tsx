@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { Github } from "lucide-react";
-import { downloadCalendar } from "./calendar/ics";
+import * as calendar from "./calendar/ics";
 import { BrowseView } from "./components/BrowseView";
 import { PlanView } from "./components/PlanView";
+import {
+  PlannerFeedback,
+  type PlannerFeedbackMessage,
+} from "./components/PlannerFeedback";
 import {
   FESTIVAL_PLAYLIST_URL,
   OFFICIAL_SET_TIMES_URL,
@@ -11,7 +15,16 @@ import {
 } from "./config/site";
 import { schedule } from "./data/schedule";
 import { scheduleChanges } from "./data/scheduleChanges";
-import { UpdateNotice, type OfflineStatusState } from "./pwa/OfflineStatus";
+import {
+  OfflineReadiness,
+  UpdateNotice,
+  type OfflineStatusState,
+} from "./pwa/OfflineStatus";
+import {
+  createInitialBrowseFilters,
+  type BrowseFilters,
+  type BrowseMode,
+} from "./planner/itinerary";
 import { createItineraryStore } from "./storage/itineraryStore";
 
 type PlannerView = "plan" | "browse";
@@ -20,6 +33,46 @@ type AppProps = {
   onRefresh?: () => void;
 };
 const PLANNER_CLOCK_INTERVAL_MS = 60_000;
+const CALENDAR_EXPORTED_MESSAGE: PlannerFeedbackMessage = {
+  kind: "calendar-exported",
+  text: "Calendar download started: we-out-here-2026-plan.ics",
+};
+
+type PendingUndo = {
+  eventId: string;
+  note?: string;
+  focusKind?: string;
+};
+
+function activePlannerFocusKind(eventId: string): string | undefined {
+  const activeElement = document.activeElement;
+  if (
+    activeElement instanceof HTMLElement &&
+    activeElement.dataset.plannerEventId === eventId
+  ) {
+    return activeElement.dataset.plannerFocusKind;
+  }
+  return undefined;
+}
+
+function restorePlannerFocus(eventId: string, focusKind?: string) {
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-planner-event-id]"),
+  ).filter(
+    (element) =>
+      element.dataset.plannerEventId === eventId &&
+      element.isConnected &&
+      !element.closest("[inert]"),
+  );
+  const target =
+    candidates.find(
+      (element) => element.dataset.plannerFocusKind === focusKind,
+    ) ??
+    candidates[0] ??
+    document.querySelector<HTMLElement>('.planner-nav [aria-current="page"]');
+
+  target?.focus();
+}
 
 class SessionMemoryStorage implements Storage {
   private readonly values = new Map<string, string>();
@@ -105,7 +158,13 @@ export default function App({ offlineState, onRefresh }: AppProps) {
       storageIsPersistent: browserStorage.persistent,
     };
   });
+  const now = usePlannerClock();
   const [view, setView] = useState<PlannerView>("plan");
+  const [initialBrowseFilters] = useState<BrowseFilters>(() =>
+    createInitialBrowseFilters(now),
+  );
+  const [browseFilters, setBrowseFilters] = useState(initialBrowseFilters);
+  const [browseMode, setBrowseMode] = useState<BrowseMode>("list");
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(
     () => new Set(initialItinerary.favouriteIds),
   );
@@ -114,8 +173,23 @@ export default function App({ offlineState, onRefresh }: AppProps) {
   );
   const [persisted, setPersisted] = useState(initialItinerary.persisted);
   const [removedIds, setRemovedIds] = useState(initialItinerary.removedIds);
-  const now = usePlannerClock();
+  const [feedbackMessage, setFeedbackMessage] =
+    useState<PlannerFeedbackMessage | null>(null);
+  const [pendingUndo, setPendingUndo] = useState<PendingUndo | null>(null);
+  const [focusAfterUndo, setFocusAfterUndo] = useState<{
+    eventId: string;
+    focusKind?: string;
+  } | null>(null);
   const savedEvents = schedule.filter((event) => favouriteIds.has(event.id));
+
+  useEffect(() => {
+    if (!focusAfterUndo) {
+      return;
+    }
+
+    restorePlannerFocus(focusAfterUndo.eventId, focusAfterUndo.focusKind);
+    setFocusAfterUndo(null);
+  }, [focusAfterUndo]);
 
   const saveItinerary = (
     nextFavouriteIds: ReadonlySet<string>,
@@ -125,17 +199,35 @@ export default function App({ offlineState, onRefresh }: AppProps) {
       favouriteIds: [...nextFavouriteIds],
       notesByEventId: nextNotesByEventId,
     });
-    setPersisted(storageIsPersistent && result.persisted);
+    const effectiveResult = {
+      persisted: storageIsPersistent && result.persisted,
+    };
+    setPersisted(effectiveResult.persisted);
     setFavouriteIds(new Set(nextFavouriteIds));
     setNotesByEventId(nextNotesByEventId);
+    return effectiveResult;
   };
 
   const toggleFavourite = (eventId: string) => {
     const nextFavouriteIds = new Set(favouriteIds);
     if (nextFavouriteIds.has(eventId)) {
+      const removedEvent = schedule.find((event) => event.id === eventId);
+      const nextPendingUndo = {
+        eventId,
+        note: notesByEventId[eventId],
+        focusKind: activePlannerFocusKind(eventId),
+      };
       nextFavouriteIds.delete(eventId);
+      setPendingUndo(nextPendingUndo);
+      setFeedbackMessage({
+        kind: "undo-remove",
+        eventId,
+        text: `${removedEvent?.title ?? "Event"} removed from your plan.`,
+      });
     } else {
       nextFavouriteIds.add(eventId);
+      setPendingUndo(null);
+      setFeedbackMessage(null);
     }
     const nextNotesByEventId = nextFavouriteIds.has(eventId)
       ? notesByEventId
@@ -157,7 +249,28 @@ export default function App({ offlineState, onRefresh }: AppProps) {
     } else {
       nextNotesByEventId[eventId] = note;
     }
-    saveItinerary(favouriteIds, nextNotesByEventId);
+    setPendingUndo(null);
+    const result = saveItinerary(favouriteIds, nextNotesByEventId);
+    setFeedbackMessage(null);
+    return result;
+  };
+
+  const undoRemove = () => {
+    if (!pendingUndo) {
+      return;
+    }
+
+    const { eventId, focusKind, note } = pendingUndo;
+    const nextFavouriteIds = new Set(favouriteIds);
+    nextFavouriteIds.add(eventId);
+    const nextNotesByEventId = { ...notesByEventId };
+    if (note !== undefined) {
+      nextNotesByEventId[eventId] = note;
+    }
+    saveItinerary(nextFavouriteIds, nextNotesByEventId);
+    setPendingUndo(null);
+    setFeedbackMessage(null);
+    setFocusAfterUndo({ eventId, focusKind });
   };
 
   const clearPlan = () => {
@@ -166,10 +279,16 @@ export default function App({ offlineState, onRefresh }: AppProps) {
     setNotesByEventId({});
     setRemovedIds([]);
     setPersisted(storageIsPersistent && result.persisted);
+    setPendingUndo(null);
+    setFeedbackMessage(null);
   };
 
   return (
-    <main className="app-shell">
+    <main
+      className="app-shell"
+      data-planner-view={view}
+      data-plan-empty={savedEvents.length === 0}
+    >
       <header className="app-header">
         <a
           className="header-source-link"
@@ -214,6 +333,12 @@ export default function App({ offlineState, onRefresh }: AppProps) {
       {offlineState === "updating" && onRefresh ? (
         <UpdateNotice onRefresh={onRefresh} />
       ) : null}
+      {offlineState ? <OfflineReadiness state={offlineState} /> : null}
+      <PlannerFeedback
+        message={feedbackMessage}
+        onUndoRemove={pendingUndo ? undoRemove : undefined}
+        storageUnavailable={!persisted}
+      />
 
       {view === "plan" ? (
         <PlanView
@@ -221,17 +346,23 @@ export default function App({ offlineState, onRefresh }: AppProps) {
           favouriteIds={favouriteIds}
           notesByEventId={notesByEventId}
           now={now}
-          persisted={persisted}
           removedIds={removedIds}
           onToggleFavourite={toggleFavourite}
           onSaveNote={saveNote}
           onBrowse={() => setView("browse")}
-          onExport={() => downloadCalendar(savedEvents, notesByEventId)}
+          onExport={() => {
+            if (calendar.downloadCalendar(savedEvents, notesByEventId)) {
+              setPendingUndo(null);
+              setFeedbackMessage(CALENDAR_EXPORTED_MESSAGE);
+            }
+          }}
           onClear={clearPlan}
           onDismissScheduleChanges={() => {
             const result = store.dismissRemoved();
             setRemovedIds([]);
             setPersisted(storageIsPersistent && result.persisted);
+            setPendingUndo(null);
+            setFeedbackMessage(null);
           }}
         />
       ) : (
@@ -239,22 +370,23 @@ export default function App({ offlineState, onRefresh }: AppProps) {
           events={schedule}
           favouriteIds={favouriteIds}
           now={now}
+          filters={browseFilters}
+          mode={browseMode}
           notesByEventId={notesByEventId}
           onToggleFavourite={toggleFavourite}
           onSaveNote={saveNote}
+          onFiltersChange={setBrowseFilters}
+          onModeChange={setBrowseMode}
+          onClearFilters={() => setBrowseFilters(initialBrowseFilters)}
         />
       )}
 
       <footer className="app-footer">
         <p>
-          Field Notes is an unofficial personal planner and is not affiliated
-          with or endorsed by We Out Here Festival.
+          Field Notes is an unofficial, local-first planner: your plan and Event
+          Notes stay in this browser, and the app does not fetch programme content
+          at runtime.
         </p>
-        <p>
-          Field Notes is a local-first planner using a verified programme
-          snapshot and saves plans and notes in the browser.
-        </p>
-        <p>Your saved plan and Event Notes stay only in this browser.</p>
         <nav className="app-footer__resources" aria-label="Footer resources">
           <a href={PROJECT_README_URL} target="_blank" rel="noreferrer">
             How Field Notes works
