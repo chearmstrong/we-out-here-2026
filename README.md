@@ -47,7 +47,7 @@ Festival content is committed locally; the production app never scrapes or fetch
 
 ## Resources and attribution
 
-For the full product guide, see [How Field Notes works](https://github.com/chearmstrong/we-out-here-2026#readme), or [view the source on GitHub](https://github.com/chearmstrong/we-out-here-2026). The official [We Out Here set times](https://weoutherefestival.com/set-times/) are an external reference; Field Notes does not retrieve or reproduce them at runtime. The [festival playlist](https://open.spotify.com/playlist/7Am6bwWRhhwy4yjcMo3ASA) is an optional browser link and is never embedded or fetched at runtime.
+For the full product guide, see [How Field Notes works](https://github.com/chearmstrong/we-out-here-2026#readme), or [view the source on GitHub](https://github.com/chearmstrong/we-out-here-2026). The official [We Out Here set times](https://weoutherefestival.com/set-times/) and [festival map](https://weoutherefestival.com/2026/08/explore-the-woh26-festival-map/) are external references: open the map while online and download it before relying on it at the festival. Field Notes does not retrieve, reproduce, or bundle either at runtime. The [festival playlist](https://open.spotify.com/playlist/7Am6bwWRhhwy4yjcMo3ASA) is an optional browser link and is never embedded or fetched at runtime.
 
 ## Identity and attribution
 

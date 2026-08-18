@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { expect, it } from "vitest";
 import {
   FESTIVAL_PLAYLIST_URL,
+  OFFICIAL_FESTIVAL_MAP_URL,
   OFFICIAL_SET_TIMES_URL,
   PAGES_BASE,
   PROJECT_README_URL,
@@ -20,6 +21,9 @@ it("publishes stable public resource destinations", () => {
   expect(PROJECT_README_URL).toBe(`${PROJECT_REPOSITORY_URL}#readme`);
   expect(OFFICIAL_SET_TIMES_URL).toBe(
     "https://weoutherefestival.com/set-times/",
+  );
+  expect(OFFICIAL_FESTIVAL_MAP_URL).toBe(
+    "https://weoutherefestival.com/2026/08/explore-the-woh26-festival-map/",
   );
   expect(FESTIVAL_PLAYLIST_URL).toBe(
     "https://open.spotify.com/playlist/7Am6bwWRhhwy4yjcMo3ASA",
