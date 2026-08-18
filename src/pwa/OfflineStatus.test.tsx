@@ -242,5 +242,5 @@ it("keeps lower offline status free of update actions while an update waits", ()
 it("keeps the current Schedule Snapshot date visible while an update waits", () => {
   render(<OfflineStatus state="updating" onRefresh={() => undefined} />);
 
-  expect(screen.getByText("Schedule checked 9 August 2026")).toBeInTheDocument();
+  expect(screen.getByText("Schedule checked 18 August 2026")).toBeInTheDocument();
 });

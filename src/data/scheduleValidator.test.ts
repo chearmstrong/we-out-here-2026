@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { FestivalEvent } from "../domain/festival";
 import { familyProgramme } from "./familyProgramme";
-import { schedule } from "./schedule";
+import {
+  SCHEDULE_LAST_CHECKED,
+  SCHEDULE_VERSION,
+  schedule,
+} from "./schedule";
 import { scheduleChanges } from "./scheduleChanges";
 import { validateSchedule } from "./scheduleValidator";
 
@@ -206,13 +210,15 @@ describe("validateSchedule", () => {
       familyProgramme.filter(({ locationStatus }) => locationStatus === undefined),
     ).toHaveLength(43);
 
-    expect(schedule).toHaveLength(910);
+    expect(SCHEDULE_VERSION).toBe("2026-08-18");
+    expect(SCHEDULE_LAST_CHECKED).toBe("2026-08-18");
+    expect(schedule).toHaveLength(935);
     expect(
       schedule.filter(({ source }) => source === "music-programme"),
     ).toHaveLength(564);
     expect(
       schedule.filter(({ source }) => source === "wider-programme"),
-    ).toHaveLength(159);
+    ).toHaveLength(184);
     expect(
       schedule.filter(({ source }) => source === "family-programme"),
     ).toHaveLength(187);
@@ -240,8 +246,8 @@ describe("validateSchedule", () => {
       expect.objectContaining({
         category: "family",
         source: "music-programme",
-        title: "DJ COMPETITION FINAL WITH ACTIVATE PERFORMING ARTS",
-        venue: "Love Serve Bar",
+        title: "Activate [DJ Competition Final]",
+        venue: "Love-Serve Bar",
       }),
     ]);
     expect(
@@ -251,6 +257,76 @@ describe("validateSchedule", () => {
           "sunday:love-serve-bar:dj-competition-final-with-activate-performing-arts",
       ),
     ).toBe(false);
+
+    expect(
+      schedule.filter(({ venue }) => venue === "Action Station"),
+    ).toHaveLength(25);
+    expect(schedule).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "thursday:action-station:banner-painting-with-ellen-green-new-deal-rising",
+          title: "Banner Painting with Ellen (Green New Deal Rising)",
+          programmeDay: "thursday",
+          venue: "Action Station",
+          startsAt: "2026-08-20T14:00:00+01:00",
+          endsAt: "2026-08-20T15:30:00+01:00",
+          source: "wider-programme",
+        }),
+        expect.objectContaining({
+          id: "friday:action-station:seeds-of-revolution-guerrilla-tactics-for-a-peoples-garden-with-ikaay-ebi",
+          programmeDay: "friday",
+          startsAt: "2026-08-21T10:00:00+01:00",
+          endsAt: "2026-08-21T11:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "saturday:action-station:kites4palestine-kite-making-and-flying-workshop-with-kites4palestine-and-amos-trust",
+          programmeDay: "saturday",
+          startsAt: "2026-08-22T10:00:00+01:00",
+          endsAt: "2026-08-22T11:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "sunday:action-station:protest-song-session-with-genevieve-dawson-zahra-fatehrani",
+          programmeDay: "sunday",
+          startsAt: "2026-08-23T10:00:00+01:00",
+          endsAt: "2026-08-23T11:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "thursday:tomorrows-warriors-big-top:manfredo-lament",
+          startsAt: "2026-08-20T15:50:00+01:00",
+          endsAt: "2026-08-20T16:25:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "friday:rhythm-corner:palms-trax",
+          startsAt: "2026-08-21T23:00:00+01:00",
+          endsAt: "2026-08-22T01:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "sunday:near-mint-record-store:steffi-bricks",
+          startsAt: "2026-08-23T19:30:00+01:00",
+          endsAt: "2026-08-23T20:30:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "friday:lush-life:roge",
+          title: "ROGÊ",
+          venue: "Lush Life",
+          startsAt: "2026-08-21T22:20:00+01:00",
+          endsAt: "2026-08-21T23:00:00+01:00",
+        }),
+      ]),
+    );
+    expect(scheduleChanges).toEqual(
+      new Map([
+        [
+          "friday:tomorrows-warriors-big-top:roge",
+          "friday:lush-life:roge",
+        ],
+        ["saturday:roller-rink:tbc", "saturday:roller-rink:dj-tara"],
+        [
+          "sunday:near-mint-record-store:la-rumba",
+          "sunday:near-mint-record-signings:la-rumba",
+        ],
+      ]),
+    );
   });
 
   it("preserves the printed Friday Message for the Future punctuation", () => {
@@ -362,7 +438,7 @@ describe("validateSchedule", () => {
   it("preserves official title spelling and punctuation", () => {
     const titlesById = new Map(schedule.map(({ id, title }) => [id, title]));
     const expectedTitles = new Map([
-      ["friday:tomorrows-warriors-big-top:roge", "ROGÊ"],
+      ["friday:lush-life:roge", "ROGÊ"],
       [
         "friday:love-dancin:mr-scruff-dj-spinna-and-vanessa-freeman",
         "Mr Scruff, DJ Spinna & Vanessa Freeman",

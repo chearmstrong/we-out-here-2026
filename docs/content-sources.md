@@ -1,6 +1,6 @@
 # Programme content sources
 
-The Schedule Snapshot was last checked on **9 August 2026** and is published as version `2026-08-09`.
+The Schedule Snapshot was last checked on **18 August 2026** and is published as version `2026-08-18`.
 
 ## Official sources
 
@@ -11,7 +11,7 @@ The Schedule Snapshot was last checked on **9 August 2026** and is published as 
 
 The Music and Wider Programme sources are public web pages; the Family Programme source is the official Facebook post above. The local snapshot contains only factual programme metadata: titles, Programme Days, venues or official area labels, displayed start and end times, and classifications derived from the published programme information. It contains no private, authenticated, or attendee data. The app does not embed or fetch Facebook or card artwork at runtime, and all application copy and UI assets remain original.
 
-The `2026-08-09` snapshot contains all 910 displayed events: 564 Music Programme events, 159 Wider Programme events, and 187 Family Programme events. The Family category contains 193 events, including four pre-existing Wider Programme events and the reclassified Big Fish Little Fish [Family Rave] and DJ Competition Final Music Programme events. Displayed local times are stored as ISO timestamps with the August British Summer Time offset (`+01:00`). Events after midnight keep the Programme Day under which the official source publishes them while their Calendar Timestamps use the following calendar date.
+The `2026-08-18` snapshot contains 935 displayed events: 564 Music Programme events, 184 Wider Programme events, and 187 Family Programme events. It adds the 25 published Action Station Wider Programme events and reconciles live Music Programme time, title, artist, and venue changes. The Music source currently displays a duplicate Friday The Mighty Zaf row; the snapshot retains one factual event. The Family category contains 193 events, including four pre-existing Wider Programme events and the reclassified Big Fish Little Fish [Family Rave] and Activate [DJ Competition Final] Music Programme events. Displayed local times are stored as ISO timestamps with the August British Summer Time offset (`+01:00`). Events after midnight keep the Programme Day under which the official source publishes them while their Calendar Timestamps use the following calendar date.
 
 ## Required snapshot release sequence
 
