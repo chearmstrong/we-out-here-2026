@@ -9,6 +9,7 @@ import {
 } from "./components/PlannerFeedback";
 import {
   FESTIVAL_PLAYLIST_URL,
+  OFFICIAL_FESTIVAL_MAP_URL,
   OFFICIAL_SET_TIMES_URL,
   PROJECT_README_URL,
   PROJECT_REPOSITORY_URL,
@@ -400,6 +401,13 @@ export default function App({ offlineState, onRefresh }: AppProps) {
           </a>
           <a href={OFFICIAL_SET_TIMES_URL} target="_blank" rel="noreferrer">
             Official set times
+          </a>
+          <a
+            href={OFFICIAL_FESTIVAL_MAP_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Official festival map
           </a>
         </nav>
       </footer>

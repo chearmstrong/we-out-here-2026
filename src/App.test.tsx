@@ -5,6 +5,7 @@ import * as calendar from "./calendar/ics";
 import App from "./App";
 import {
   FESTIVAL_PLAYLIST_URL,
+  OFFICIAL_FESTIVAL_MAP_URL,
   OFFICIAL_SET_TIMES_URL,
   PROJECT_README_URL,
   PROJECT_REPOSITORY_URL,
@@ -804,6 +805,9 @@ describe("App", () => {
       .toHaveAttribute("href", PROJECT_REPOSITORY_URL);
     expect(within(footer).getByRole("link", { name: "Official set times" }))
       .toHaveAttribute("href", OFFICIAL_SET_TIMES_URL);
+    expect(
+      within(footer).getByRole("link", { name: "Official festival map" }),
+    ).toHaveAttribute("href", OFFICIAL_FESTIVAL_MAP_URL);
     for (const link of within(footer).getAllByRole("link")) {
       expect(link).toHaveAttribute("target", "_blank");
       expect(link).toHaveAttribute("rel", "noreferrer");
