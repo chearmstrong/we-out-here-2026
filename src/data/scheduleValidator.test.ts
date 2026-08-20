@@ -210,15 +210,15 @@ describe("validateSchedule", () => {
       familyProgramme.filter(({ locationStatus }) => locationStatus === undefined),
     ).toHaveLength(43);
 
-    expect(SCHEDULE_VERSION).toBe("2026-08-18");
-    expect(SCHEDULE_LAST_CHECKED).toBe("2026-08-18");
-    expect(schedule).toHaveLength(935);
+    expect(SCHEDULE_VERSION).toBe("2026-08-20");
+    expect(SCHEDULE_LAST_CHECKED).toBe("2026-08-20");
+    expect(schedule).toHaveLength(937);
     expect(
       schedule.filter(({ source }) => source === "music-programme"),
-    ).toHaveLength(564);
+    ).toHaveLength(565);
     expect(
       schedule.filter(({ source }) => source === "wider-programme"),
-    ).toHaveLength(184);
+    ).toHaveLength(185);
     expect(
       schedule.filter(({ source }) => source === "family-programme"),
     ).toHaveLength(187);
@@ -312,8 +312,89 @@ describe("validateSchedule", () => {
           startsAt: "2026-08-21T22:20:00+01:00",
           endsAt: "2026-08-21T23:00:00+01:00",
         }),
+        expect.objectContaining({
+          id: "friday:carhartt-wip:160u-simms",
+          title: "160U: SIMMS",
+          startsAt: "2026-08-21T21:00:00+01:00",
+          endsAt: "2026-08-21T22:00:00+01:00",
+          category: "music",
+        }),
+        expect.objectContaining({
+          id: "friday:passenger-presents-ground-tempo:outside-is-a-vibe",
+          title: "Outside is a Vibe",
+          startsAt: "2026-08-21T15:00:00+01:00",
+          endsAt: "2026-08-21T16:00:00+01:00",
+          category: "music",
+        }),
+        expect.objectContaining({
+          id: "friday:carhartt-wip:160-unity-craic-david-sohotsospicy-and-seb",
+          startsAt: "2026-08-21T22:00:00+01:00",
+          endsAt: "2026-08-21T23:30:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "friday:carhartt-wip:160-unity-dj-spinn",
+          startsAt: "2026-08-21T23:30:00+01:00",
+          endsAt: "2026-08-22T00:30:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "saturday:rhythm-corner:alix-perez-ft-sp-mc",
+          startsAt: "2026-08-22T22:30:00+01:00",
+          endsAt: "2026-08-23T00:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "saturday:rhythm-corner:calibre-ft-sp-mc",
+          startsAt: "2026-08-23T00:00:00+01:00",
+          endsAt: "2026-08-23T02:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "saturday:rhythm-corner:ivy-lab",
+          startsAt: "2026-08-23T02:00:00+01:00",
+          endsAt: "2026-08-23T04:00:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "saturday:brawnswood:marina-and-yazmin-lacey",
+          title: "MARINA GB & Yazmin Lacey",
+        }),
+        expect.objectContaining({
+          id: "saturday:brawnswood:dave-okumu-and-tom-skinner",
+          title: "OHS (Dave Okumu | Tom Herbert | Tom Skinner)",
+        }),
+        expect.objectContaining({
+          id: "sunday:near-mint-record-store:la-rumba",
+          venue: "Near Mint Record Store",
+          startsAt: "2026-08-23T18:00:00+01:00",
+          endsAt: "2026-08-23T19:30:00+01:00",
+        }),
+        expect.objectContaining({
+          id: "sunday:the-knowledge:point-blank-music-school-electronic-orchestra",
+          title: "Point Blank Music School: Electronic Orchestra",
+          startsAt: "2026-08-23T10:00:00+01:00",
+          endsAt: "2026-08-23T11:00:00+01:00",
+          category: "workshop",
+        }),
+        expect.objectContaining({
+          id: "sunday:booklove:seeing-the-big-picture-with-helen-sanson",
+          title:
+            "Remembering Jason Arday and Pioneers: Honouring Lives, Legacies, Memories and Change Together",
+        }),
+        expect.objectContaining({
+          id: "sunday:the-knowledge:qobuz-presents-music-from-my-homeland-series-3",
+          title: "Qobuz Presents: Homeland to Here ft Tara Lily",
+        }),
+        expect.objectContaining({
+          id: "sunday:the-knowledge:how-to-make-a-catalogue-contemporary-with-cam-records-and-bodie-cameron",
+          title:
+            "CAM Sugar: A Journey Through the World’s Largest Cataloge of Italian Film Soundtracks",
+        }),
       ]),
     );
+    expect(
+      schedule.some(
+        ({ id }) =>
+          id ===
+          "friday:worldwide-fm-presents-woh-radio:luke-una-a-worldwide-breakfast",
+      ),
+    ).toBe(false);
     expect(scheduleChanges).toEqual(
       new Map([
         [
@@ -322,8 +403,8 @@ describe("validateSchedule", () => {
         ],
         ["saturday:roller-rink:tbc", "saturday:roller-rink:dj-tara"],
         [
-          "sunday:near-mint-record-store:la-rumba",
           "sunday:near-mint-record-signings:la-rumba",
+          "sunday:near-mint-record-store:la-rumba",
         ],
       ]),
     );

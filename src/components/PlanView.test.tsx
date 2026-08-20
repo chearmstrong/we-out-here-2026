@@ -59,7 +59,7 @@ describe("PlanView", () => {
       screen.getByRole("button", { name: "Download calendar" }),
     ).toBeDisabled();
     expect(
-      screen.getByText("Schedule checked 18 August 2026"),
+      screen.getByText("Schedule checked 20 August 2026"),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Browse programme" }));
